@@ -2,7 +2,6 @@ package com.lms.lms_backend.config;
 
 import com.lms.lms_backend.security.JwtUtil;
 import com.lms.lms_backend.util.TenantContext;
-import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,32 +36,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String username = null;
         String jwt = null;
+        Long instituteId = null;
 
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
-            try {
-                username = jwtUtil.extractUsername(jwt);
-            } catch (ExpiredJwtException e) {
-                // Token expired
-            }
+            username = jwtUtil.extractUsername(jwt);
+            instituteId = jwtUtil.extractInstituteId(jwt);
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
             if (jwtUtil.validateToken(jwt, username)) {
-                // 👇 මෙතන තමයි Authorities set වෙන්නේ!
+                // 👇 Authorities හරියට Set කරනවා
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,
                                 null,
-                                userDetails.getAuthorities()  // 👈 මේක තියෙනවාද?
+                                userDetails.getAuthorities()
                         );
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                // Tenant ID set කරනවා
-                Long instituteId = jwtUtil.extractInstituteId(jwt);
                 if (instituteId != null) {
                     TenantContext.setInstituteId(instituteId);
                 }
