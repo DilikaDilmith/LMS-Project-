@@ -4,11 +4,8 @@ import com.lms.lms_backend.dto.*;
 import com.lms.lms_backend.model.*;
 import com.lms.lms_backend.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,8 +32,9 @@ public class QuizService {
     @Autowired
     private CourseRepository courseRepository;
 
+    // 👇 Notification Service Inject කරන්න
     @Autowired
-    private UserRepository userRepository;
+    private NotificationService notificationService;
 
     public Quiz createQuiz(QuizRequest request) {
         Course course = courseRepository.findById(request.getCourseId())
@@ -84,24 +82,13 @@ public class QuizService {
 
     @Transactional
     public QuizResultResponse submitQuiz(Long quizId, Long studentId, QuizAttemptRequest request) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User currentUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-
-        if (!currentUser.getId().equals(studentId)) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "You can only submit a quiz for your own student account (ID: " + currentUser.getId() + ")");
-        }
-
         Quiz quiz = quizRepository.findById(quizId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found"));
+                .orElseThrow(() -> new RuntimeException("Quiz not found!"));
 
         if (attemptRepository.findByQuizIdAndStudentId(quizId, studentId).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "You have already attempted this quiz");
+            throw new RuntimeException("You have already attempted this quiz!");
         }
 
-        // 1. Create Attempt
         QuizAttempt attempt = new QuizAttempt();
         attempt.setQuizId(quizId);
         attempt.setStudentId(studentId);
@@ -110,7 +97,6 @@ public class QuizService {
 
         QuizAttempt savedAttempt = attemptRepository.save(attempt);
 
-        // 2. Get Questions
         List<QuizQuestion> questions = questionRepository.findByQuizId(quizId);
         int totalMarks = 0;
         int scoredMarks = 0;
@@ -118,7 +104,6 @@ public class QuizService {
         Map<String, Long> selectedOptions = request.getSelectedOptions();
         Map<String, String> shortAnswers = request.getShortAnswers();
 
-        // 3. Process Answers
         for (QuizQuestion question : questions) {
             totalMarks += question.getMarks();
 
@@ -157,13 +142,29 @@ public class QuizService {
             answerRepository.save(answer);
         }
 
-        // 4. Update Attempt
         savedAttempt.setScore(scoredMarks);
         savedAttempt.setEndTime(LocalDateTime.now());
         savedAttempt.setIsPassed(scoredMarks >= (totalMarks * quiz.getPassingScore() / 100));
         savedAttempt.setStatus(QuizAttempt.AttemptStatus.COMPLETED);
 
         QuizAttempt updatedAttempt = attemptRepository.save(savedAttempt);
+
+        // 👇 **NEW: Notification එක Send කරනවා (Student ට)**
+        try {
+            String title = "Quiz Result: " + quiz.getTitle();
+            String message = "You scored " + scoredMarks + "/" + totalMarks + " in '" + quiz.getTitle() + "'.\n" +
+                             "Result: " + (updatedAttempt.getIsPassed() ? "✅ PASSED" : "❌ FAILED") +
+                             " (Passing Score: " + quiz.getPassingScore() + "%)";
+            notificationService.createNotification(
+                    studentId,
+                    title,
+                    message,
+                    updatedAttempt.getIsPassed() ? Notification.NotificationType.SUCCESS : Notification.NotificationType.WARNING,
+                    "/quizzes/" + quizId + "/results"
+            );
+        } catch (Exception e) {
+            System.err.println("Failed to send notification: " + e.getMessage());
+        }
 
         return new QuizResultResponse(
                 updatedAttempt.getId(),

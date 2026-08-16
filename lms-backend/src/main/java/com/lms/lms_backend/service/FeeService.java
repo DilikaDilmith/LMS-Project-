@@ -1,8 +1,8 @@
 package com.lms.lms_backend.service;
 
 import com.lms.lms_backend.model.Course;
-import com.lms.lms_backend.model.Enrollment;
 import com.lms.lms_backend.model.Fee;
+import com.lms.lms_backend.model.Notification;
 import com.lms.lms_backend.model.Payment;
 import com.lms.lms_backend.repository.CourseRepository;
 import com.lms.lms_backend.repository.EnrollmentRepository;
@@ -29,19 +29,11 @@ public class FeeService {
     @Autowired
     private EnrollmentRepository enrollmentRepository;
 
-    // Course Fee එක Create කරනවා (Course එකට)
-    public Fee setCourseFee(Long courseId, Double amount) {
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found!"));
+    // 👇 Notification Service Inject කරන්න
+    @Autowired
+    private NotificationService notificationService;
 
-        // Enrollment තියෙන Students ට Fee Update කරන්න ඕනේ නම් ලොගික් එක මෙතන දාන්න පුළුවන්
-        return null; // මේක වෙනම method එකක් හදමු
-    }
-
-    // Student කෙනෙකුට Fee Generate කරනවා (Enrollment වෙනකොට)
-    @Transactional
     public Fee generateFeeForStudent(Long studentId, Long courseId, Double amount) {
-        // Fee දැනටමත් තියෙනවද?
         if (feeRepository.findByStudentIdAndCourseId(studentId, courseId).isPresent()) {
             throw new RuntimeException("Fee already exists for this student and course!");
         }
@@ -56,19 +48,16 @@ public class FeeService {
         return feeRepository.save(fee);
     }
 
-    // Enrollment වෙනකොට Auto Fee Generate කරන්න
     @Transactional
     public Fee autoGenerateFeeOnEnrollment(Long studentId, Long courseId, Double courseFee) {
         return generateFeeForStudent(studentId, courseId, courseFee);
     }
 
-    // Payment Record කරනවා
     @Transactional
     public Payment recordPayment(Long feeId, Double amount, Long paidBy, Payment.PaymentMethod method, String reference) {
         Fee fee = feeRepository.findById(feeId)
                 .orElseThrow(() -> new RuntimeException("Fee not found!"));
 
-        // Payment Record එක Save කරනවා
         Payment payment = new Payment();
         payment.setFeeId(feeId);
         payment.setAmount(amount);
@@ -79,10 +68,10 @@ public class FeeService {
 
         Payment savedPayment = paymentRepository.save(payment);
 
-        // Fee Status Update කරනවා
         double newPaidAmount = fee.getPaidAmount() + amount;
         fee.setPaidAmount(newPaidAmount);
 
+        Fee.FeeStatus previousStatus = fee.getStatus();
         if (newPaidAmount >= fee.getTotalAmount()) {
             fee.setStatus(Fee.FeeStatus.PAID);
         } else if (newPaidAmount > 0) {
@@ -90,33 +79,43 @@ public class FeeService {
         }
 
         feeRepository.save(fee);
+
+        // 👇 **NEW: Notification එක Send කරනවා (Student ට / Parent ට)**
+        try {
+            Long studentId = fee.getStudentId();
+            String title = "Payment Confirmation";
+            String message = "A payment of Rs." + amount + " has been successfully recorded.\n" +
+                             "Total Paid: Rs." + newPaidAmount + " / Rs." + fee.getTotalAmount() + "\n" +
+                             "Status: " + fee.getStatus().name();
+            notificationService.createNotification(
+                    studentId,
+                    title,
+                    message,
+                    Notification.NotificationType.SUCCESS,
+                    "/fees/" + feeId
+            );
+            // අමතරව Parent ටත් Notify කරන්න ඕනේ නම්, Parent ID එක හොයලා add කරන්න.
+        } catch (Exception e) {
+            System.err.println("Failed to send notification: " + e.getMessage());
+        }
+
         return savedPayment;
     }
 
-    // Student ගේ Fee Details එක ගන්නවා
     public Fee getStudentFee(Long studentId, Long courseId) {
         return feeRepository.findByStudentIdAndCourseId(studentId, courseId)
                 .orElseThrow(() -> new RuntimeException("Fee not found for this student and course!"));
     }
 
-    // Student ගේ හැම Fee එකම ගන්නවා
     public List<Fee> getStudentAllFees(Long studentId) {
         return feeRepository.findByStudentId(studentId);
     }
 
-    // Student ගේ Fee Payments ඉතිහාසය ගන්නවා
     public List<Payment> getStudentPaymentHistory(Long studentId) {
         return paymentRepository.findByPaidBy(studentId);
     }
 
-    // Fee Status Update කරනවා (Overdue Check - Scheduler එකකින් මේක call කරන්න පුළුවන්)
     public void checkAndUpdateOverdueFees() {
-        List<Fee> fees = feeRepository.findAll();
-        for (Fee fee : fees) {
-            if (fee.getStatus() == Fee.FeeStatus.PENDING || fee.getStatus() == Fee.FeeStatus.PARTIAL) {
-                // අමතර logic: due date එකක් තියෙනවා නම් overdue check කරන්න
-                // දැනට අපිට due date නැහැ, ඉතින් මේක ටිකක් අමතරවෙයි
-            }
-        }
+        // Future logic if needed
     }
 }

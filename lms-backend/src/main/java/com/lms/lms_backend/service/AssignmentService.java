@@ -8,6 +8,7 @@ import com.lms.lms_backend.dto.SubmissionResponse;
 import com.lms.lms_backend.model.Assignment;
 import com.lms.lms_backend.model.AssignmentSubmission;
 import com.lms.lms_backend.model.Course;
+import com.lms.lms_backend.model.Notification;
 import com.lms.lms_backend.model.User;
 import com.lms.lms_backend.repository.AssignmentRepository;
 import com.lms.lms_backend.repository.AssignmentSubmissionRepository;
@@ -36,18 +37,19 @@ public class AssignmentService {
     @Autowired
     private UserRepository userRepository;
 
-    // Lecturer Assignment එකක් Create කරනවා
+    // 👇 Notification Service Inject කරන්න
+    @Autowired
+    private NotificationService notificationService;
+
     public AssignmentResponse createAssignment(AssignmentRequest request) {
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
 
-        // Institute Isolation Check
         Long currentInstituteId = TenantContext.getInstituteId();
         if (currentInstituteId != null && !currentInstituteId.equals(course.getInstituteId())) {
             throw new RuntimeException("Access denied!");
         }
 
-        // Lecturer check
         User lecturer = userRepository.findById(request.getLecturerId())
                 .orElseThrow(() -> new RuntimeException("Lecturer not found!"));
 
@@ -64,7 +66,6 @@ public class AssignmentService {
         return mapToResponse(saved);
     }
 
-    // Course එකේ Assignments List එක
     public List<AssignmentResponse> getAssignmentsByCourse(Long courseId) {
         return assignmentRepository.findByCourseId(courseId)
                 .stream()
@@ -72,17 +73,14 @@ public class AssignmentService {
                 .collect(Collectors.toList());
     }
 
-    // Student Assignment Submit කරනවා
     public SubmissionResponse submitAssignment(Long assignmentId, Long studentId, SubmissionRequest request) {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Assignment not found!"));
 
-        // දැනටමත් Submit කරලාද?
         if (submissionRepository.findByAssignmentIdAndStudentId(assignmentId, studentId).isPresent()) {
             throw new RuntimeException("You have already submitted this assignment!");
         }
 
-        // Due Date check - LATE status එක set කරනවා
         AssignmentSubmission.SubmissionStatus status = AssignmentSubmission.SubmissionStatus.SUBMITTED;
         if (LocalDateTime.now().isAfter(assignment.getDueDate())) {
             status = AssignmentSubmission.SubmissionStatus.LATE;
@@ -98,7 +96,6 @@ public class AssignmentService {
         return mapToSubmissionResponse(saved);
     }
 
-    // Lecturer Submission Grade කරනවා
     public SubmissionResponse gradeSubmission(Long submissionId, GradeRequest request, Long lecturerId) {
         AssignmentSubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new RuntimeException("Submission not found!"));
@@ -106,12 +103,10 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.findById(submission.getAssignmentId())
                 .orElseThrow(() -> new RuntimeException("Assignment not found!"));
 
-        // Lecturer validate කරනවා (මේ Lecturerට මේ assignment එක අයිතිද?)
         if (!assignment.getLecturerId().equals(lecturerId)) {
             throw new RuntimeException("You are not authorized to grade this submission!");
         }
 
-        // Marks validate
         if (request.getMarks() > assignment.getMaxMarks()) {
             throw new RuntimeException("Marks cannot exceed max marks (" + assignment.getMaxMarks() + ")");
         }
@@ -123,10 +118,28 @@ public class AssignmentService {
         submission.setGradedAt(LocalDateTime.now());
 
         AssignmentSubmission saved = submissionRepository.save(submission);
+
+        // 👇 **NEW: Notification එක Send කරනවා (Student ට)**
+        try {
+            String title = "Assignment Graded: " + assignment.getTitle();
+            String message = "Your assignment '" + assignment.getTitle() + "' has been graded.\n" +
+                             "Marks: " + request.getMarks() + "/" + assignment.getMaxMarks() + "\n" +
+                             "Feedback: " + (request.getFeedback() != null ? request.getFeedback() : "No feedback provided.");
+            notificationService.createNotification(
+                    submission.getStudentId(),
+                    title,
+                    message,
+                    Notification.NotificationType.SUCCESS,
+                    "/assignments/" + assignment.getId()
+            );
+        } catch (Exception e) {
+            // Notification එක fail උනාට main operation එක stop වෙන්න එපා
+            System.err.println("Failed to send notification: " + e.getMessage());
+        }
+
         return mapToSubmissionResponse(saved);
     }
 
-    // Student ගේ Submissions List එක
     public List<SubmissionResponse> getSubmissionsByStudent(Long studentId) {
         return submissionRepository.findByStudentId(studentId)
                 .stream()
@@ -134,7 +147,6 @@ public class AssignmentService {
                 .collect(Collectors.toList());
     }
 
-    // Assignment එකක Submissions List (Lecturer/Admin)
     public List<SubmissionResponse> getSubmissionsByAssignment(Long assignmentId) {
         return submissionRepository.findByAssignmentId(assignmentId)
                 .stream()
@@ -142,7 +154,6 @@ public class AssignmentService {
                 .collect(Collectors.toList());
     }
 
-    // Helper Methods
     private AssignmentResponse mapToResponse(Assignment assignment) {
         return new AssignmentResponse(
                 assignment.getId(),
