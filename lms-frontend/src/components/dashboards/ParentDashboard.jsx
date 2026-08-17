@@ -320,13 +320,13 @@ const ParentDashboard = ({ data }) => {
 
               <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
                 There are currently no students linked to your
-                parent account. Please contact your institute
-                administrator to link your child.
+                parent account. Please link your child below.
               </p>
 
+              {/* 👇 NEW: Link Child Button */}
               <div className="mt-6">
                 <Link
-                  to="/parent/profile"
+                  to="/parent/link-child"
                   className="
                     inline-flex
                     items-center
@@ -346,8 +346,7 @@ const ParentDashboard = ({ data }) => {
                     focus:ring-offset-2
                   "
                 >
-                  Go to Profile
-                  <span>→</span>
+                  Link Child →
                 </Link>
               </div>
             </div>

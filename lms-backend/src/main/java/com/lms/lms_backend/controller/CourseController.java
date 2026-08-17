@@ -66,7 +66,7 @@ public class CourseController {
     }
 
     @GetMapping("/lecturer/{lecturerId}")
-    @PreAuthorize("hasRole('LECTURER')")
+    @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('STUDENT')")
     public List<CourseResponse> getCoursesByLecturer(@PathVariable Long lecturerId) {
         return courseService.getCoursesByLecturer(lecturerId);
     }
@@ -91,10 +91,11 @@ public class CourseController {
 
     // Student ගේ Enrolled Courses List එක
     @GetMapping("/enrolled/student/{studentId}")
-    @PreAuthorize("hasRole('STUDENT')")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('PARENT') or hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public List<EnrollmentResponse> getStudentEnrolledCourses(@PathVariable Long studentId) {
         return enrollmentService.getEnrollmentsByStudent(studentId);
     }
+
 
     // Course එකක Enrolled Students List එක (Lecturer/Admin)
     @GetMapping("/{courseId}/enrollments")

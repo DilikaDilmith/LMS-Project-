@@ -18,6 +18,9 @@ import LecturerGrading from './pages/lecturer/LecturerGrading';
 import LecturerQuizzes from './pages/lecturer/LecturerQuizzes';
 import LecturerCreateCourse from './pages/lecturer/LecturerCreateCourse';
 import LecturerCourses from './pages/lecturer/LecturerCourses';
+import LecturerAssignments from './pages/lecturer/LecturerAssignments';
+import LecturerAttendance from './pages/lecturer/LecturerAttendance';
+
 
 
 // 👇 NEW: Admin Pages (Institute Admin)
@@ -25,6 +28,11 @@ import AdminStudents from './pages/admin/AdminStudents';
 import AdminLecturers from './pages/admin/AdminLecturers';
 import AdminCourses from './pages/admin/AdminCourses';
 import AdminReports from './pages/admin/AdminReports';
+
+// 👇 parent Pages
+import ParentChildDetails from './pages/parent/ParentChildDetails';
+import LinkChild from './pages/parent/LinkChild';
+
 
 // -------- Protected Route Component --------
 const ProtectedRoute = ({ children }) => {
@@ -192,23 +200,60 @@ function App() {
             }
           />
           {/* Lecturer Create Course */}
-          <Route 
-            path="/lecturer/create-course" 
+          <Route
+            path="/lecturer/create-course"
             element={
               <ProtectedRoute>
                 <LecturerCreateCourse />
               </ProtectedRoute>
-            } 
+            }
           />
 
           {/* Lecturer Courses List */}
-          <Route 
-            path="/lecturer/courses" 
+          <Route
+            path="/lecturer/courses"
             element={
               <ProtectedRoute>
                 <LecturerCourses />
               </ProtectedRoute>
-            } 
+            }
+          />
+
+          {/* Lecturer Assignments */}
+          <Route
+            path="/lecturer/assignments"
+            element={
+              <ProtectedRoute>
+                <LecturerAssignments />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Lecturer Attendance */}
+          <Route
+            path="/lecturer/attendance"
+            element={
+              <ProtectedRoute>
+                <LecturerAttendance />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/parent/child/:childId"
+            element={
+              <ProtectedRoute>
+                <ParentChildDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/link-child"
+            element={
+              <ProtectedRoute>
+                <LinkChild />
+              </ProtectedRoute>
+            }
           />
 
 

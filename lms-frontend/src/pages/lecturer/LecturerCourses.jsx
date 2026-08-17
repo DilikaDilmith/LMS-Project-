@@ -22,15 +22,30 @@ const LecturerCourses = () => {
   const fetchLecturerCourses = async () => {
     setLoading(true);
     try {
-      const res = await courseAPI.getCoursesByLecturer(lecturerId);
-      setCourses(res.data || []);
+      let list = [];
+      if (lecturerId) {
+        const res = await courseAPI.getCoursesByLecturer(lecturerId);
+        list = res.data || [];
+      }
+      if (list.length === 0) {
+        const allRes = await courseAPI.getAll();
+        list = allRes.data || [];
+      }
+      setCourses(list);
     } catch (error) {
-      console.error('Failed to fetch lecturer courses:', error);
-      toast.error('Failed to load your courses');
+      console.warn('Primary fetch courses failed, attempting getAll fallback:', error);
+      try {
+        const allRes = await courseAPI.getAll();
+        setCourses(allRes.data || []);
+      } catch (err2) {
+        console.error('All course fetch attempts failed:', err2);
+        toast.error('Failed to load courses');
+      }
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleSubmitForApproval = async (courseId) => {
     setSubmittingId(courseId);

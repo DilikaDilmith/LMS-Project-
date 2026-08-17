@@ -208,7 +208,13 @@ export const parentStudentAPI = {
 export const userAPI = {
   getProfile: (userId) => api.get(`/users/${userId}`),
   updateProfile: (userId, data) => api.put(`/users/${userId}`, data),
-  getStudents: (instituteId) => api.get(`/users/institute/${instituteId}/students`),
+  getStudents: (instituteId) => {
+    if (instituteId && instituteId !== 0) {
+      return api.get(`/users/institute/${instituteId}/students`);
+    }
+    return api.get('/users/students');
+  },
+  getAllStudents: () => api.get('/users/students'),
   getLecturers: (instituteId) => api.get(`/users/institute/${instituteId}/lecturers`),
 };
 
