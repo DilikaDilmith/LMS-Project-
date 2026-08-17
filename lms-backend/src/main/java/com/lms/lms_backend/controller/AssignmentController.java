@@ -1,5 +1,6 @@
 package com.lms.lms_backend.controller;
 
+import com.lms.lms_backend.annotation.Auditable;
 import com.lms.lms_backend.dto.AssignmentRequest;
 import com.lms.lms_backend.dto.AssignmentResponse;
 import com.lms.lms_backend.dto.GradeRequest;
@@ -19,22 +20,21 @@ public class AssignmentController {
     @Autowired
     private AssignmentService assignmentService;
 
-    // Lecturer Assignment Create කරනවා
     @PostMapping
     @PreAuthorize("hasRole('LECTURER')")
+    @Auditable(action = "CREATE_ASSIGNMENT", description = "Lecturer creates an assignment")
     public AssignmentResponse createAssignment(@RequestBody AssignmentRequest request) {
         return assignmentService.createAssignment(request);
     }
 
-    // Course එකක Assignments List එක
     @GetMapping("/course/{courseId}")
     public List<AssignmentResponse> getAssignmentsByCourse(@PathVariable Long courseId) {
         return assignmentService.getAssignmentsByCourse(courseId);
     }
 
-    // Student Assignment Submit කරනවා
     @PostMapping("/{assignmentId}/submit/student/{studentId}")
     @PreAuthorize("hasRole('STUDENT')")
+    @Auditable(action = "SUBMIT_ASSIGNMENT", description = "Student submits assignment")
     public SubmissionResponse submitAssignment(
             @PathVariable Long assignmentId,
             @PathVariable Long studentId,
@@ -42,9 +42,9 @@ public class AssignmentController {
         return assignmentService.submitAssignment(assignmentId, studentId, request);
     }
 
-    // Lecturer Submission Grade කරනවා
     @PostMapping("/submissions/{submissionId}/grade/lecturer/{lecturerId}")
     @PreAuthorize("hasRole('LECTURER')")
+    @Auditable(action = "GRADE_ASSIGNMENT", description = "Lecturer grades assignment submission")
     public SubmissionResponse gradeSubmission(
             @PathVariable Long submissionId,
             @PathVariable Long lecturerId,
@@ -52,14 +52,12 @@ public class AssignmentController {
         return assignmentService.gradeSubmission(submissionId, request, lecturerId);
     }
 
-    // Student ගේ Submissions List එක
     @GetMapping("/student/{studentId}")
     @PreAuthorize("hasRole('STUDENT') or hasRole('INSTITUTE_ADMIN')")
     public List<SubmissionResponse> getSubmissionsByStudent(@PathVariable Long studentId) {
         return assignmentService.getSubmissionsByStudent(studentId);
     }
 
-    // Assignment එකක Submissions List (Lecturer/Admin)
     @GetMapping("/{assignmentId}/submissions")
     @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN')")
     public List<SubmissionResponse> getSubmissionsByAssignment(@PathVariable Long assignmentId) {

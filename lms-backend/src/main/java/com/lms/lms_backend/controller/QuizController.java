@@ -1,5 +1,6 @@
 package com.lms.lms_backend.controller;
 
+import com.lms.lms_backend.annotation.Auditable;
 import com.lms.lms_backend.dto.*;
 import com.lms.lms_backend.model.Quiz;
 import com.lms.lms_backend.model.QuizAttempt;
@@ -20,12 +21,14 @@ public class QuizController {
 
     @PostMapping
     @PreAuthorize("hasRole('LECTURER')")
+    @Auditable(action = "CREATE_QUIZ", description = "Lecturer creates a quiz")
     public Quiz createQuiz(@RequestBody QuizRequest request) {
         return quizService.createQuiz(request);
     }
 
     @PostMapping("/{quizId}/questions")
     @PreAuthorize("hasRole('LECTURER')")
+    @Auditable(action = "ADD_QUIZ_QUESTION", description = "Lecturer adds question to quiz")
     public QuizQuestion addQuestion(@PathVariable Long quizId, @RequestBody QuestionRequest request) {
         return quizService.addQuestionToQuiz(quizId, request);
     }
@@ -35,9 +38,9 @@ public class QuizController {
         return quizService.getQuizzesByCourse(courseId);
     }
 
-    // Student Quiz Submit කරනවා
-    @PreAuthorize("hasRole('STUDENT')")
     @PostMapping("/{quizId}/submit/student/{studentId}")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Auditable(action = "SUBMIT_QUIZ", description = "Student submits quiz")
     public QuizResultResponse submitQuiz(
             @PathVariable Long quizId,
             @PathVariable Long studentId,

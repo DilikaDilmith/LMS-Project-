@@ -1,5 +1,6 @@
 package com.lms.lms_backend.controller;
 
+import com.lms.lms_backend.annotation.Auditable;
 import com.lms.lms_backend.dto.AuthRequest;
 import com.lms.lms_backend.dto.AuthResponse;
 import com.lms.lms_backend.dto.RegisterRequest;
@@ -34,6 +35,7 @@ public class AuthController {
     private AuthenticationManager authenticationManager;
 
     @PostMapping("/register")
+    @Auditable(action = "REGISTER", description = "New user registration")
     public String register(@RequestBody RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             return "Error: Username is taken!";
@@ -58,17 +60,17 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-public AuthResponse login(@RequestBody AuthRequest request) {
-    Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-    );
+    @Auditable(action = "LOGIN", description = "User login attempt")
+    public AuthResponse login(@RequestBody AuthRequest request) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+        );
 
-    UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-    User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
 
-    // 👇 Token එක Generate කරනකොට instituteId එක Pass කරනවා
-    String token = jwtUtil.generateToken(userDetails.getUsername(), user.getInstituteId());
+        String token = jwtUtil.generateToken(userDetails.getUsername(), user.getInstituteId());
 
-    return new AuthResponse(token, user.getUsername(), user.getRole().name());
-}
+        return new AuthResponse(token, user.getUsername(), user.getRole().name());
+    }
 }
