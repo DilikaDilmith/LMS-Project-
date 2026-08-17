@@ -3,14 +3,17 @@ package com.lms.lms_backend.service;
 import com.lms.lms_backend.dto.CourseRequest;
 import com.lms.lms_backend.dto.CourseResponse;
 import com.lms.lms_backend.model.Course;
+import com.lms.lms_backend.model.Enrollment;
 import com.lms.lms_backend.model.Role;
 import com.lms.lms_backend.model.User;
 import com.lms.lms_backend.repository.CourseRepository;
+import com.lms.lms_backend.repository.EnrollmentRepository;
 import com.lms.lms_backend.repository.UserRepository;
 import com.lms.lms_backend.util.TenantContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +26,9 @@ public class CourseService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;   // 👈 මෙතන Add කරන්න
+
     // Lecturer විසින් Course එකක් Create කරනවා (DRAFT status)
     public CourseResponse createCourse(CourseRequest request) {
         // 1. Lecturer එක තියෙනවද check කරනවා
@@ -32,6 +38,14 @@ public class CourseService {
         // Role එක check කරනවා (අපි Role enum එක use කරනවා)
         if (lecturer.getRole() != Role.ROLE_LECTURER) {
             throw new RuntimeException("User is not a Lecturer!");
+        }
+
+        // Resolve instituteId if missing
+        if (request.getInstituteId() == null) {
+            request.setInstituteId(lecturer.getInstituteId() != null ? lecturer.getInstituteId() : TenantContext.getInstituteId());
+        }
+        if (request.getInstituteId() == null) {
+            request.setInstituteId(1L);
         }
 
         // 2. Institute Isolation: ලෙක්චරර්ලා ඉන්නේ එකම Institute එකේද?
@@ -44,6 +58,7 @@ public class CourseService {
         if (courseRepository.existsByNameAndInstituteId(request.getName(), request.getInstituteId())) {
             throw new RuntimeException("Course with this name already exists in your institute!");
         }
+
 
         // 4. Course එක Save කරනවා
         Course course = new Course();
@@ -104,6 +119,12 @@ public class CourseService {
 
     // Institute එකක තියෙන හැම Course එකම ගන්නවා (Institute Admin/Student)
     public List<CourseResponse> getCoursesByInstitute(Long instituteId) {
+        if (instituteId == null || instituteId == 0) {
+            return courseRepository.findAll()
+                    .stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        }
         return courseRepository.findByInstituteId(instituteId)
                 .stream()
                 .map(this::mapToResponse)
@@ -112,6 +133,12 @@ public class CourseService {
 
     // Approved Courses විතරක් ගන්නවා (Studentsට පෙන්වන්න)
     public List<CourseResponse> getApprovedCoursesByInstitute(Long instituteId) {
+        if (instituteId == null || instituteId == 0) {
+            return courseRepository.findByStatus(Course.CourseStatus.APPROVED)
+                    .stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        }
         return courseRepository.findByInstituteIdAndStatus(instituteId, Course.CourseStatus.APPROVED)
                 .stream()
                 .map(this::mapToResponse)
@@ -126,10 +153,28 @@ public class CourseService {
                 .collect(Collectors.toList());
     }
 
+    // 👇 NEW: Student ගේ Enrolled Courses List එක
+    public List<CourseResponse> getStudentEnrolledCourses(Long studentId) {
+        List<Enrollment> enrollments = enrollmentRepository.findByStudentId(studentId);
+        List<CourseResponse> enrolledCourses = new ArrayList<>();
+        for (Enrollment enrollment : enrollments) {
+            Course course = courseRepository.findById(enrollment.getCourseId()).orElse(null);
+            if (course != null && course.getStatus() == Course.CourseStatus.APPROVED) {
+                enrolledCourses.add(mapToResponse(course));
+            }
+        }
+        return enrolledCourses;
+    }
+
     // ID එකෙන් Course එක ගන්නවා
     public Course getCourseById(Long id) {
         return courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
+    }
+
+    public CourseResponse getCourseResponseById(Long id) {
+        Course course = getCourseById(id);
+        return mapToResponse(course);
     }
 
     // Helper methods

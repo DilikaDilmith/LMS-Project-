@@ -1,7 +1,9 @@
 package com.lms.lms_backend.repository;
 
+import com.lms.lms_backend.model.Role;
 import com.lms.lms_backend.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -9,4 +11,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
+    List<User> findByInstituteIdAndRole(Long instituteId, Role role);
 }

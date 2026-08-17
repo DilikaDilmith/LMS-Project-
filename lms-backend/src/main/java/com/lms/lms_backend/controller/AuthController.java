@@ -1,6 +1,5 @@
 package com.lms.lms_backend.controller;
 
-import com.lms.lms_backend.annotation.Auditable;
 import com.lms.lms_backend.dto.AuthRequest;
 import com.lms.lms_backend.dto.AuthResponse;
 import com.lms.lms_backend.dto.RegisterRequest;
@@ -35,7 +34,6 @@ public class AuthController {
     private AuthenticationManager authenticationManager;
 
     @PostMapping("/register")
-    @Auditable(action = "REGISTER", description = "New user registration")
     public String register(@RequestBody RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             return "Error: Username is taken!";
@@ -60,17 +58,16 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Auditable(action = "LOGIN", description = "User login attempt")
     public AuthResponse login(@RequestBody AuthRequest request) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-        );
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
 
         String token = jwtUtil.generateToken(userDetails.getUsername(), user.getInstituteId());
 
-        return new AuthResponse(token, user.getUsername(), user.getRole().name());
+        // 👇 instituteId එකත් Return කරන්න
+        return new AuthResponse(token, user.getId(), user.getUsername(), user.getRole().name(), user.getInstituteId());
     }
 }

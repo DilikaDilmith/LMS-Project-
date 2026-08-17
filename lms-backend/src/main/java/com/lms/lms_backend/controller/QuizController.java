@@ -38,6 +38,16 @@ public class QuizController {
         return quizService.getQuizzesByCourse(courseId);
     }
 
+    @GetMapping("/{quizId}")
+    public Quiz getQuizById(@PathVariable Long quizId) {
+        return quizService.getQuizById(quizId);
+    }
+
+    @GetMapping("/{quizId}/questions")
+    public List<QuizQuestion> getQuestionsForQuiz(@PathVariable Long quizId) {
+        return quizService.getQuestionsForQuiz(quizId);
+    }
+
     @PostMapping("/{quizId}/submit/student/{studentId}")
     @PreAuthorize("hasRole('STUDENT')")
     @Auditable(action = "SUBMIT_QUIZ", description = "Student submits quiz")
@@ -53,4 +63,4 @@ public class QuizController {
     public List<QuizAttempt> getStudentResults(@PathVariable Long studentId) {
         return quizService.getStudentQuizResults(studentId);
     }
-}
+}

@@ -32,7 +32,13 @@ public class JwtUtil {
     }
 
     public Long extractInstituteId(String token) {
-        return extractClaim(token, claims -> claims.get("instituteId", Long.class));
+        return extractClaim(token, claims -> {
+            Object val = claims.get("instituteId");
+            if (val instanceof Number) {
+                return ((Number) val).longValue();
+            }
+            return null;
+        });
     }
 
     public Date extractExpiration(String token) {

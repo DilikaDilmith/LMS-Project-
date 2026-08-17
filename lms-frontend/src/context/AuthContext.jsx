@@ -1,39 +1,52 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext } from 'react';
 import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+const getStoredUser = () => {
+  const storedUser = localStorage.getItem('user');
+  const storedToken = localStorage.getItem('token');
+  if (!storedUser || !storedToken) {
+    return null;
+  }
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
-  }, []);
+  try {
+    return JSON.parse(storedUser);
+  } catch {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    return null;
+  }
+};
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(getStoredUser);
+  const [loading] = useState(false);
 
   const login = async (username, password) => {
-    try {
-      const response = await authAPI.login({ username, password });
-      const { token, username: userName, role } = response.data;
-      
-      const userData = { username: userName, role };
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
-      
-      toast.success('Login successful!');
-      return true;
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed!');
-      return false;
-    }
-  };
+  try {
+    const response = await authAPI.login({ username, password });
+    const { token, userId, username: userName, role, instituteId } = response.data; // 👈 instituteId Extract කරන්න
+    
+    const userData = { 
+      id: userId, 
+      username: userName, 
+      role: role,
+      instituteId: instituteId   // 👈 Store කරන්න
+    };
+    
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    
+    toast.success('Login successful!');
+    return true;
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Login failed!');
+    return false;
+  }
+};
 
   const register = async (userData) => {
     try {
@@ -41,7 +54,8 @@ export const AuthProvider = ({ children }) => {
       toast.success('Registration successful! Please login.');
       return true;
     } catch (error) {
-      toast.error(error.response?.data || 'Registration failed!');
+      const errorMsg = error.response?.data || 'Registration failed! Please try again.';
+      toast.error(errorMsg);
       return false;
     }
   };
@@ -50,8 +64,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-    toast.success('Logged out');
-    window.location.href = '/login';
+    toast.success('Logged out successfully');
   };
 
   return (
@@ -61,4 +74,11 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+// eslint-disable-next-line react-refresh/only-export-components
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

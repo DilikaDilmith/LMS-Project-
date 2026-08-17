@@ -178,4 +178,18 @@ public class QuizService {
     public List<QuizAttempt> getStudentQuizResults(Long studentId) {
         return attemptRepository.findByStudentId(studentId);
     }
-}
+
+    public Quiz getQuizById(Long quizId) {
+        return quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Quiz not found!"));
+    }
+
+    public List<QuizQuestion> getQuestionsForQuiz(Long quizId) {
+        List<QuizQuestion> questions = questionRepository.findByQuizId(quizId);
+        for (QuizQuestion q : questions) {
+            List<QuizOption> options = optionRepository.findByQuestionId(q.getId());
+            q.setOptions(options);
+        }
+        return questions;
+    }
+}
