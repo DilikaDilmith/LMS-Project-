@@ -35,7 +35,8 @@ import LinkChild from './pages/parent/LinkChild';
 import FeePayment from './pages/parent/FeePayment';
 
 import Notifications from './pages/Notifications';
-
+import Announcements from './pages/Announcements';
+import CreateAnnouncement from './pages/CreateAnnouncement';
 // -------- Protected Route Component --------
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -293,6 +294,31 @@ function App() {
             element={
               <ProtectedRoute>
                 <LecturerGrading />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/announcements"
+            element={
+              <ProtectedRoute>
+                <Announcements />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/announcements/create"
+            element={
+              <ProtectedRoute>
+                <CreateAnnouncement />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/student/quizzes"
+            element={
+              <ProtectedRoute>
+                <StudentQuizzes />
               </ProtectedRoute>
             }
           />

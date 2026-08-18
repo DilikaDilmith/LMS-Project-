@@ -9,6 +9,7 @@ import com.lms.lms_backend.model.Assignment;
 import com.lms.lms_backend.model.AssignmentSubmission;
 import com.lms.lms_backend.model.Course;
 import com.lms.lms_backend.model.Notification;
+import com.lms.lms_backend.model.Role;
 import com.lms.lms_backend.model.User;
 import com.lms.lms_backend.repository.AssignmentRepository;
 import com.lms.lms_backend.repository.AssignmentSubmissionRepository;
@@ -113,7 +114,7 @@ public class AssignmentService {
             Course course = courseRepository.findById(assignment.getCourseId()).orElse(null);
             boolean isCourseLecturer = course != null && lecturerId.equals(course.getLecturerId());
             User user = userRepository.findById(lecturerId).orElse(null);
-            boolean isAdmin = user != null && (user.getRole() == User.Role.INSTITUTE_ADMIN || user.getRole() == User.Role.SYSTEM_ADMIN);
+            boolean isAdmin = user != null && (user.getRole() == Role.ROLE_INSTITUTE_ADMIN || user.getRole() == Role.ROLE_SYSTEM_ADMIN);
             if (!isCourseLecturer && !isAdmin) {
                 throw new RuntimeException("You are not authorized to grade this submission!");
             }

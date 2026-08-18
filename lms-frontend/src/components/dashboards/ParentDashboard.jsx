@@ -494,7 +494,7 @@ const ParentDashboard = ({ data }) => {
               </Link>
 
               <Link
-                to="/parent/announcements"
+                to="/announcements"
                 className="
                   group flex items-center gap-4
                   rounded-2xl

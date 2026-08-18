@@ -45,6 +45,10 @@ const InstituteAdminDashboard = ({ data }) => {
             <div className="text-2xl mb-1">📊</div>
             <span className="text-sm font-medium">Reports</span>
           </Link>
+          <Link to="/announcements" className="bg-white p-4 rounded-lg shadow hover:shadow-md border border-gray-200 text-center hover:border-teal-300 transition">
+            <div className="text-2xl mb-1">📢</div>
+            <span className="text-sm font-medium">Announcements</span>
+          </Link>
         </div>
       </section>
     </div>
