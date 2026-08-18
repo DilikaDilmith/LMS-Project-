@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { dashboardAPI } from '../services/api';
+import { Link } from 'react-router-dom'; // 👈 මේක Import කරන්න අමතක කරන්න එපා!
+import { useAuth } from '../../context/AuthContext';
+import { dashboardAPI } from '../../services/api';
 
 // Import all role dashboards
-import StudentDashboard from '../components/dashboards/StudentDashboard';
-import LecturerDashboard from '../components/dashboards/LecturerDashboard';
-import InstituteAdminDashboard from '../components/dashboards/InstituteAdminDashboard';
-import SystemAdminDashboard from '../components/dashboards/SystemAdminDashboard';
-import ParentDashboard from '../components/dashboards/ParentDashboard';
+import StudentDashboard from './StudentDashboard';
+import LecturerDashboard from './LecturerDashboard';
+import InstituteAdminDashboard from './InstituteAdminDashboard';
+import SystemAdminDashboard from './SystemAdminDashboard';
+import ParentDashboard from './ParentDashboard';
+
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -30,9 +32,12 @@ const Dashboard = () => {
           case 'ROLE_LECTURER':
             response = await dashboardAPI.getLecturer(userId);
             break;
-          case 'ROLE_INSTITUTE_ADMIN':
-            response = await dashboardAPI.getInstitute(instituteId);
+          case 'ROLE_INSTITUTE_ADMIN': {
+            const validInstId = (instituteId && instituteId !== 'undefined') ? instituteId : 1;
+            response = await dashboardAPI.getInstitute(validInstId);
             break;
+          }
+
           case 'ROLE_SYSTEM_ADMIN':
             response = await dashboardAPI.getSystemAdmin();
             break;
@@ -122,9 +127,22 @@ const Dashboard = () => {
                 <p className="text-sm font-semibold text-gray-800">{user?.username}</p>
                 <p className="text-xs text-gray-400 capitalize">{getRoleName()}</p>
               </div>
+              
               <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
                 {user?.username?.charAt(0)?.toUpperCase()}
               </div>
+
+              {/* 👇 NEW: Notifications Link (🔔) */}
+              <Link
+                to="/notifications"
+                className="relative p-2 rounded-lg hover:bg-gray-100 transition text-gray-600 hover:text-gray-800"
+                title="Notifications"
+              >
+                <span className="text-xl">🔔</span>
+                {/* Unread Badge - Static demo (Optional) */}
+                {/* <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span> */}
+              </Link>
+
               <button
                 onClick={logout}
                 className="ml-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 transition"

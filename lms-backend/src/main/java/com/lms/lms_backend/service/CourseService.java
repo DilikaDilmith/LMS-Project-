@@ -68,7 +68,8 @@ public class CourseService {
         course.setDurationWeeks(request.getDurationWeeks());
         course.setInstituteId(request.getInstituteId());
         course.setLecturerId(request.getLecturerId());
-        course.setStatus(Course.CourseStatus.DRAFT);
+        // Auto set status to PENDING_APPROVAL so Institute Admin immediately sees it
+        course.setStatus(Course.CourseStatus.PENDING_APPROVAL);
 
         Course saved = courseRepository.save(course);
         return mapToResponse(saved);
@@ -79,12 +80,7 @@ public class CourseService {
         Course course = getCourseById(courseId);
         validateLecturerAccess(course);
 
-        if (course.getStatus() == Course.CourseStatus.DRAFT) {
-            course.setStatus(Course.CourseStatus.PENDING_APPROVAL);
-        } else {
-            throw new RuntimeException("Only DRAFT courses can be submitted for approval!");
-        }
-
+        course.setStatus(Course.CourseStatus.PENDING_APPROVAL);
         return mapToResponse(courseRepository.save(course));
     }
 
@@ -93,12 +89,8 @@ public class CourseService {
         Course course = getCourseById(courseId);
         validateInstituteAdminAccess(course);
 
-        if (course.getStatus() == Course.CourseStatus.PENDING_APPROVAL) {
-            course.setStatus(Course.CourseStatus.APPROVED);
-        } else {
-            throw new RuntimeException("Only PENDING_APPROVAL courses can be approved!");
-        }
-
+        course.setStatus(Course.CourseStatus.APPROVED);
+        course.setRejectionReason(null);
         return mapToResponse(courseRepository.save(course));
     }
 
@@ -107,15 +99,11 @@ public class CourseService {
         Course course = getCourseById(courseId);
         validateInstituteAdminAccess(course);
 
-        if (course.getStatus() == Course.CourseStatus.PENDING_APPROVAL) {
-            course.setStatus(Course.CourseStatus.REJECTED);
-            course.setRejectionReason(reason);
-        } else {
-            throw new RuntimeException("Only PENDING_APPROVAL courses can be rejected!");
-        }
-
+        course.setStatus(Course.CourseStatus.REJECTED);
+        course.setRejectionReason(reason);
         return mapToResponse(courseRepository.save(course));
     }
+
 
     // Institute එකක තියෙන හැම Course එකම ගන්නවා (Institute Admin/Student)
     public List<CourseResponse> getCoursesByInstitute(Long instituteId) {
@@ -187,10 +175,11 @@ public class CourseService {
 
     private void validateInstituteAdminAccess(Course course) {
         Long currentInstituteId = TenantContext.getInstituteId();
-        if (currentInstituteId == null || !currentInstituteId.equals(course.getInstituteId())) {
+        if (currentInstituteId != null && !currentInstituteId.equals(course.getInstituteId())) {
             throw new RuntimeException("Access denied! You can only manage courses in your institute.");
         }
     }
+
 
     private CourseResponse mapToResponse(Course course) {
         return new CourseResponse(

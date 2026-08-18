@@ -3,7 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './components/dashboards/Dashboard';
 import StudentCourses from './pages/StudentCourses';
 import CourseDetails from './pages/CourseDetails';
 import StudentAssignments from './pages/StudentAssignments';
@@ -32,7 +32,9 @@ import AdminReports from './pages/admin/AdminReports';
 // 👇 parent Pages
 import ParentChildDetails from './pages/parent/ParentChildDetails';
 import LinkChild from './pages/parent/LinkChild';
+import FeePayment from './pages/parent/FeePayment';
 
+import Notifications from './pages/Notifications';
 
 // -------- Protected Route Component --------
 const ProtectedRoute = ({ children }) => {
@@ -239,6 +241,17 @@ function App() {
             }
           />
 
+          {/* Lecturer Grading */}
+          <Route
+            path="/lecturer/grading"
+            element={
+              <ProtectedRoute>
+                <LecturerGrading />
+              </ProtectedRoute>
+            }
+          />
+
+          // Parent Child Details Route
           <Route
             path="/parent/child/:childId"
             element={
@@ -247,6 +260,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          // Parent Link Child Route
           <Route
             path="/parent/link-child"
             element={
@@ -255,7 +269,33 @@ function App() {
               </ProtectedRoute>
             }
           />
-
+          // Parent Fee Payment Route
+          <Route
+            path="/parent/payments"
+            element={
+              <ProtectedRoute>
+                <FeePayment />
+              </ProtectedRoute>
+            }
+          />
+          // Notifications Route
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            }
+          />
+          // Lecturer Grading Route
+          <Route
+            path="/lecturer/grading"
+            element={
+              <ProtectedRoute>
+                <LecturerGrading />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Default Route */}
           <Route path="/" element={<Navigate to="/login" />} />

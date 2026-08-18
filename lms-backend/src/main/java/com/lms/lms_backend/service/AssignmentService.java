@@ -50,14 +50,20 @@ public class AssignmentService {
             throw new RuntimeException("Access denied!");
         }
 
-        User lecturer = userRepository.findById(request.getLecturerId())
-                .orElseThrow(() -> new RuntimeException("Lecturer not found!"));
+        Long targetLecturerId = request.getLecturerId();
+        if (targetLecturerId == null) {
+            targetLecturerId = course.getLecturerId();
+        }
+        if (targetLecturerId == null) {
+            targetLecturerId = 1L; // Fallback default
+        }
 
         Assignment assignment = new Assignment();
         assignment.setTitle(request.getTitle());
         assignment.setDescription(request.getDescription());
         assignment.setCourseId(request.getCourseId());
-        assignment.setLecturerId(request.getLecturerId());
+        assignment.setLecturerId(targetLecturerId);
+
         assignment.setDueDate(request.getDueDate());
         assignment.setMaxMarks(request.getMaxMarks());
         assignment.setAttachmentUrl(request.getAttachmentUrl());
@@ -104,7 +110,13 @@ public class AssignmentService {
                 .orElseThrow(() -> new RuntimeException("Assignment not found!"));
 
         if (!assignment.getLecturerId().equals(lecturerId)) {
-            throw new RuntimeException("You are not authorized to grade this submission!");
+            Course course = courseRepository.findById(assignment.getCourseId()).orElse(null);
+            boolean isCourseLecturer = course != null && lecturerId.equals(course.getLecturerId());
+            User user = userRepository.findById(lecturerId).orElse(null);
+            boolean isAdmin = user != null && (user.getRole() == User.Role.INSTITUTE_ADMIN || user.getRole() == User.Role.SYSTEM_ADMIN);
+            if (!isCourseLecturer && !isAdmin) {
+                throw new RuntimeException("You are not authorized to grade this submission!");
+            }
         }
 
         if (request.getMarks() > assignment.getMaxMarks()) {

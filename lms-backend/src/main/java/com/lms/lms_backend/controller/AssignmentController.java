@@ -21,7 +21,7 @@ public class AssignmentController {
     private AssignmentService assignmentService;
 
     @PostMapping
-    @PreAuthorize("hasRole('LECTURER')")
+    @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     @Auditable(action = "CREATE_ASSIGNMENT", description = "Lecturer creates an assignment")
     public AssignmentResponse createAssignment(@RequestBody AssignmentRequest request) {
         return assignmentService.createAssignment(request);
@@ -43,7 +43,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/submissions/{submissionId}/grade/lecturer/{lecturerId}")
-    @PreAuthorize("hasRole('LECTURER')")
+    @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     @Auditable(action = "GRADE_ASSIGNMENT", description = "Lecturer grades assignment submission")
     public SubmissionResponse gradeSubmission(
             @PathVariable Long submissionId,
@@ -53,14 +53,14 @@ public class AssignmentController {
     }
 
     @GetMapping("/student/{studentId}")
-    @PreAuthorize("hasRole('STUDENT') or hasRole('INSTITUTE_ADMIN')")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('INSTITUTE_ADMIN') or hasRole('LECTURER') or hasRole('SYSTEM_ADMIN') or hasRole('PARENT')")
     public List<SubmissionResponse> getSubmissionsByStudent(@PathVariable Long studentId) {
         return assignmentService.getSubmissionsByStudent(studentId);
     }
 
     @GetMapping("/{assignmentId}/submissions")
-    @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN')")
+    @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN') or hasRole('STUDENT')")
     public List<SubmissionResponse> getSubmissionsByAssignment(@PathVariable Long assignmentId) {
         return assignmentService.getSubmissionsByAssignment(assignmentId);
     }
-}
+}

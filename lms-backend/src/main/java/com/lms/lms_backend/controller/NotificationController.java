@@ -16,33 +16,33 @@ public class NotificationController {
     private NotificationService notificationService;
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasRole('SYSTEM_ADMIN') or hasRole('INSTITUTE_ADMIN') or #userId == authentication.principal.username")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('LECTURER') or hasRole('PARENT') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public List<Notification> getUserNotifications(@PathVariable Long userId) {
         return notificationService.getUserNotifications(userId);
     }
 
     @GetMapping("/user/{userId}/unread")
-    @PreAuthorize("hasRole('SYSTEM_ADMIN') or hasRole('INSTITUTE_ADMIN') or #userId == authentication.principal.username")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('LECTURER') or hasRole('PARENT') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public List<Notification> getUnreadNotifications(@PathVariable Long userId) {
         return notificationService.getUnreadNotifications(userId);
     }
 
     @GetMapping("/user/{userId}/unread/count")
-    @PreAuthorize("hasRole('SYSTEM_ADMIN') or hasRole('INSTITUTE_ADMIN') or #userId == authentication.principal.username")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('LECTURER') or hasRole('PARENT') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public long getUnreadCount(@PathVariable Long userId) {
         return notificationService.getUnreadCount(userId);
     }
 
     @PutMapping("/{notificationId}/read/user/{userId}")
-    @PreAuthorize("hasRole('SYSTEM_ADMIN') or hasRole('INSTITUTE_ADMIN') or #userId == authentication.principal.username")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('LECTURER') or hasRole('PARENT') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public Notification markAsRead(@PathVariable Long notificationId, @PathVariable Long userId) {
         return notificationService.markAsRead(notificationId, userId);
     }
 
     @DeleteMapping("/{notificationId}/user/{userId}")
-    @PreAuthorize("hasRole('SYSTEM_ADMIN') or hasRole('INSTITUTE_ADMIN') or #userId == authentication.principal.username")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('LECTURER') or hasRole('PARENT') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public String deleteNotification(@PathVariable Long notificationId, @PathVariable Long userId) {
         notificationService.deleteNotification(notificationId, userId);
         return "Notification deleted!";
     }
-}
+}

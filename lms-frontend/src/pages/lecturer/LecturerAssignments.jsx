@@ -101,12 +101,18 @@ const LecturerAssignments = () => {
 
     setCreating(true);
     try {
+      let formattedDueDate = formData.dueDate;
+      if (formattedDueDate && !formattedDueDate.includes('T')) {
+        formattedDueDate = `${formattedDueDate}T23:59:59`;
+      }
+
       const payload = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        dueDate: formData.dueDate,
-        maxMarks: parseFloat(formData.maxMarks) || 100,
+        dueDate: formattedDueDate,
+        maxMarks: parseInt(formData.maxMarks) || 100,
         courseId: parseInt(selectedCourseId),
+        lecturerId: lecturerId ? parseInt(lecturerId) : null,
       };
 
       await assignmentAPI.create(payload);
@@ -115,6 +121,7 @@ const LecturerAssignments = () => {
       setFormData({ title: '', description: '', dueDate: '', maxMarks: 100 });
       await fetchAssignments(selectedCourseId);
     } catch (error) {
+
       console.error('Create assignment error:', error);
       toast.error(error.response?.data || 'Failed to create assignment');
     } finally {

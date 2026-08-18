@@ -62,7 +62,7 @@ const AdminCourses = () => {
 
   const filteredCourses = courses.filter(c => {
     if (filter === 'ALL') return true;
-    if (filter === 'PENDING') return c.status === 'PENDING_APPROVAL';
+    if (filter === 'PENDING') return c.status === 'PENDING_APPROVAL' || c.status === 'DRAFT';
     if (filter === 'APPROVED') return c.status === 'APPROVED';
     if (filter === 'REJECTED') return c.status === 'REJECTED';
     return true;
@@ -76,12 +76,12 @@ const AdminCourses = () => {
     );
   }
 
-  const pendingCount = courses.filter(c => c.status === 'PENDING_APPROVAL').length;
+  const pendingCount = courses.filter(c => c.status === 'PENDING_APPROVAL' || c.status === 'DRAFT').length;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm border-b p-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-blue-600">📚 Manage Courses</h1>
+        <h1 className="text-xl font-bold text-blue-600">📚 Manage & Approve Courses</h1>
         <Link to="/dashboard" className="text-blue-600 hover:underline text-sm">← Back</Link>
       </nav>
 
@@ -105,7 +105,7 @@ const AdminCourses = () => {
               className={`px-3 py-1 rounded-lg text-sm font-medium ${filter === 'PENDING' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
               onClick={() => setFilter('PENDING')}
             >
-              Pending
+              Pending Approval ({pendingCount})
             </button>
             <button
               className={`px-3 py-1 rounded-lg text-sm font-medium ${filter === 'APPROVED' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
@@ -149,40 +149,39 @@ const AdminCourses = () => {
                       <td className="px-6 py-3 text-gray-600">Lecturer #{course.lecturerId}</td>
                       <td className="px-6 py-3 text-gray-600">{course.durationWeeks} weeks</td>
                       <td className="px-6 py-3">
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
                           course.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
-                          course.status === 'PENDING_APPROVAL' ? 'bg-yellow-100 text-yellow-700' :
+                          course.status === 'PENDING_APPROVAL' ? 'bg-yellow-100 text-yellow-800' :
                           course.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-500'
+                          'bg-slate-100 text-slate-700'
                         }`}>
-                          {course.status.replace('_', ' ')}
+                          {course.status ? course.status.replace('_', ' ') : 'DRAFT'}
                         </span>
                         {course.rejectionReason && (
                           <p className="text-xs text-red-500 mt-1">{course.rejectionReason}</p>
                         )}
                       </td>
                       <td className="px-6 py-3">
-                        {course.status === 'PENDING_APPROVAL' && (
-                          <div className="flex gap-2">
+                        <div className="flex gap-2">
+                          {course.status !== 'APPROVED' && (
                             <button
                               onClick={() => handleApprove(course.id)}
                               disabled={actionLoading === course.id}
-                              className={`px-3 py-1 rounded-lg text-white text-xs font-medium ${actionLoading === course.id ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
+                              className={`px-3 py-1 rounded-lg text-white text-xs font-bold transition ${actionLoading === course.id ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700 shadow-sm'}`}
                             >
-                              {actionLoading === course.id ? '...' : 'Approve'}
+                              {actionLoading === course.id ? '...' : 'Approve ✅'}
                             </button>
+                          )}
+                          {course.status !== 'REJECTED' && (
                             <button
                               onClick={() => handleReject(course.id)}
                               disabled={actionLoading === course.id}
-                              className={`px-3 py-1 rounded-lg text-white text-xs font-medium ${actionLoading === course.id ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'}`}
+                              className={`px-3 py-1 rounded-lg text-white text-xs font-bold transition ${actionLoading === course.id ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700 shadow-sm'}`}
                             >
-                              Reject
+                              Reject ❌
                             </button>
-                          </div>
-                        )}
-                        {course.status !== 'PENDING_APPROVAL' && (
-                          <span className="text-xs text-gray-400">No action</span>
-                        )}
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -194,6 +193,7 @@ const AdminCourses = () => {
       </div>
     </div>
   );
+
 };
 
 export default AdminCourses;

@@ -56,10 +56,11 @@ export const courseAPI = {
   reject: (courseId, reason) => api.post(`/courses/${courseId}/reject?reason=${reason}`),
   enroll: (courseId, studentId) => api.post(`/courses/${courseId}/enroll/student/${studentId}`),
   getEnrollments: (courseId) => api.get(`/courses/${courseId}/enrollments`),
-  getById: (courseId) => api.get(`/courses/${courseId}`),
   getByLecturer: (lecturerId) => api.get(`/courses/lecturer/${lecturerId}`),
   getCoursesByLecturer: (lecturerId) => api.get(`/courses/lecturer/${lecturerId}`),
+  getLecturerCourses: (lecturerId) => api.get(`/courses/lecturer/${lecturerId}`),
 };
+
 
 
 // ============================================
