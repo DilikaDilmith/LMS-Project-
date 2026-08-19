@@ -124,13 +124,19 @@ export const assignmentAPI = {
 export const quizAPI = {
   create: (data) => api.post('/quizzes', data),
   getByCourse: (courseId) => api.get(`/quizzes/course/${courseId}`),
-  getById: (quizId) => api.get(`/quizzes/${quizId}`), // 👈 NEW
-  getQuestions: (quizId) => api.get(`/quizzes/${quizId}/questions`), // 👈 NEW
+  getById: (quizId) => api.get(`/quizzes/${quizId}`),
+  update: (quizId, data) => api.put(`/quizzes/${quizId}`, data),
+  remove: (quizId) => api.delete(`/quizzes/${quizId}`),
+  getQuestions: (quizId) => api.get(`/quizzes/${quizId}/questions`),
   addQuestion: (quizId, data) => api.post(`/quizzes/${quizId}/questions`, data),
-  submit: (quizId, studentId, data) => 
+  submit: (quizId, studentId, data) =>
     api.post(`/quizzes/${quizId}/submit/student/${studentId}`, data),
   getStudentResults: (studentId) => api.get(`/quizzes/student/${studentId}`),
-  getAttemptResult: (attemptId) => api.get(`/quizzes/attempt/${attemptId}/result`), // 👈 NEW
+  getAttemptResult: (attemptId) => api.get(`/quizzes/attempt/${attemptId}/result`),
+  // Lecturer: get all student attempts for a quiz
+  getSubmissions: (quizId) => api.get(`/quizzes/${quizId}/submissions`),
+  // Lecturer: get all student attempts across all quizzes in a course
+  getCourseSubmissions: (courseId) => api.get(`/quizzes/course/${courseId}/submissions`),
 };
 
 // ============================================
@@ -151,12 +157,23 @@ export const progressAPI = {
 // 12. ATTENDANCE APIs
 // ============================================
 export const attendanceAPI = {
-  mark: (courseId, date, lecturerId, data) => 
-    api.post(`/attendance/mark?courseId=${courseId}&date=${date}&lecturerId=${lecturerId}`, data),
+  mark: (courseId, date, data, lecturerId) => {
+    const validLecturerId =
+      typeof lecturerId === 'number' || typeof lecturerId === 'string'
+        ? lecturerId
+        : (data && typeof data.lecturerId === 'number' ? data.lecturerId : 1);
+    const payload = data && typeof data === 'object' && !data.hasOwnProperty('lecturerId') ? data : data;
+    return api.post(
+      `/attendance/mark?courseId=${courseId}&date=${date}&lecturerId=${validLecturerId}`,
+      payload
+    );
+  },
   getSummary: (studentId, courseId) => 
     api.get(`/attendance/summary/student/${studentId}/course/${courseId}`),
   getStudentAll: (studentId) => api.get(`/attendance/student/${studentId}`),
   getByCourseDate: (courseId, date) => 
+    api.get(`/attendance/course/${courseId}/date/${date}`),
+  getByCourseAndDate: (courseId, date) => 
     api.get(`/attendance/course/${courseId}/date/${date}`),
 };
 

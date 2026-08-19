@@ -20,13 +20,14 @@ public class AttendanceController {
 
     // Lecturer Attendance Mark කරනවා
     @PostMapping("/mark")
-    @PreAuthorize("hasRole('LECTURER')")
+    @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public List<Attendance> markAttendance(
             @RequestParam Long courseId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestBody Map<Long, Attendance.AttendanceStatus> studentStatuses,
-            @RequestParam Long lecturerId) {
-        return attendanceService.markAttendance(courseId, date, studentStatuses, lecturerId);
+            @RequestParam(required = false) Long lecturerId) {
+        Long effectiveLecturerId = lecturerId != null ? lecturerId : 1L;
+        return attendanceService.markAttendance(courseId, date, studentStatuses, effectiveLecturerId);
     }
 
     // Student ගේ Course එකක Attendance Summary

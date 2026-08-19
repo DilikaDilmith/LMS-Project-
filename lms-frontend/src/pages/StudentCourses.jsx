@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { courseAPI, moduleAPI } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
+import CertificateModal from '../components/CertificateModal';
 import toast from 'react-hot-toast';
 
 // Curated aesthetic gradients for course card thumbnail banners
@@ -33,6 +34,9 @@ const StudentCourses = () => {
   const [previewCourse, setPreviewCourse] = useState(null);
   const [previewModules, setPreviewModules] = useState([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
+
+  // Certificate Modal State
+  const [certificateCourse, setCertificateCourse] = useState(null);
 
   useEffect(() => {
     fetchCourses();
@@ -644,6 +648,13 @@ const StudentCourses = () => {
           </div>
         </div>
       )}
+      {/* 📜 Certificate Modal */}
+      <CertificateModal
+        isOpen={!!certificateCourse}
+        onClose={() => setCertificateCourse(null)}
+        course={certificateCourse}
+        user={user}
+      />
     </div>
   );
 };

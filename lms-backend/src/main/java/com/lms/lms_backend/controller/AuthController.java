@@ -109,7 +109,7 @@ public class AuthController {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
 
-        String token = jwtUtil.generateToken(userDetails.getUsername(), user.getInstituteId());
+        String token = jwtUtil.generateToken(userDetails.getUsername(), user.getInstituteId(), user.getRole().name());
 
         return new AuthResponse(token, user.getId(), user.getUsername(), user.getRole().name(), user.getInstituteId());
     }

@@ -259,7 +259,7 @@ const LecturerDashboard = ({ data }) => {
             className="
               relative overflow-hidden
               rounded-2xl
-              bg-gradient-to-r
+              bg-linear-to-r
               from-purple-600
               via-purple-700
               to-indigo-700
@@ -433,13 +433,13 @@ const LecturerDashboard = ({ data }) => {
               color="green"
             />
 
-            <QuickAction
+            <Link
               to="/lecturer/quizzes"
-              icon="❓"
-              title="Quizzes"
-              description="Create and manage course quizzes"
-              color="purple"
-            />
+              className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center hover:border-purple-300 hover:shadow-md transition"
+            >
+              <div className="text-2xl mb-1">❓</div>
+              <span className="text-sm font-medium text-gray-700">Quizzes</span>
+            </Link>
 
             <QuickAction
               to="/lecturer/attendance"

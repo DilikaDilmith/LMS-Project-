@@ -20,14 +20,28 @@ public class QuizController {
     private QuizService quizService;
 
     @PostMapping
-    @PreAuthorize("hasRole('LECTURER')")
+    @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     @Auditable(action = "CREATE_QUIZ", description = "Lecturer creates a quiz")
     public Quiz createQuiz(@RequestBody QuizRequest request) {
         return quizService.createQuiz(request);
     }
 
+    @PutMapping("/{quizId}")
+    @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @Auditable(action = "UPDATE_QUIZ", description = "Lecturer updates a quiz")
+    public Quiz updateQuiz(@PathVariable Long quizId, @RequestBody QuizRequest request) {
+        return quizService.updateQuiz(quizId, request);
+    }
+
+    @DeleteMapping("/{quizId}")
+    @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    @Auditable(action = "DELETE_QUIZ", description = "Lecturer deletes a quiz")
+    public void deleteQuiz(@PathVariable Long quizId) {
+        quizService.deleteQuiz(quizId);
+    }
+
     @PostMapping("/{quizId}/questions")
-    @PreAuthorize("hasRole('LECTURER')")
+    @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     @Auditable(action = "ADD_QUIZ_QUESTION", description = "Lecturer adds question to quiz")
     public QuizQuestion addQuestion(@PathVariable Long quizId, @RequestBody QuestionRequest request) {
         return quizService.addQuestionToQuiz(quizId, request);
@@ -49,7 +63,7 @@ public class QuizController {
     }
 
     @PostMapping("/{quizId}/submit/student/{studentId}")
-    @PreAuthorize("hasRole('STUDENT')")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     @Auditable(action = "SUBMIT_QUIZ", description = "Student submits quiz")
     public QuizResultResponse submitQuiz(
             @PathVariable Long quizId,
@@ -59,8 +73,22 @@ public class QuizController {
     }
 
     @GetMapping("/student/{studentId}")
-    @PreAuthorize("hasRole('STUDENT') or hasRole('INSTITUTE_ADMIN')")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('INSTITUTE_ADMIN') or hasRole('LECTURER') or hasRole('SYSTEM_ADMIN') or hasRole('PARENT')")
     public List<QuizAttempt> getStudentResults(@PathVariable Long studentId) {
         return quizService.getStudentQuizResults(studentId);
     }
-}
+
+    // ✅ Lecturer sees all student submissions for a specific quiz
+    @GetMapping("/{quizId}/submissions")
+    @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    public List<QuizAttempt> getQuizSubmissions(@PathVariable Long quizId) {
+        return quizService.getQuizSubmissions(quizId);
+    }
+
+    // ✅ Lecturer sees all student submissions across all quizzes in a course
+    @GetMapping("/course/{courseId}/submissions")
+    @PreAuthorize("hasRole('LECTURER') or hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
+    public List<QuizAttempt> getQuizSubmissionsByCourse(@PathVariable Long courseId) {
+        return quizService.getQuizSubmissionsByCourse(courseId);
+    }
+}

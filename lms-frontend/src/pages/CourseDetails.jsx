@@ -10,6 +10,7 @@ import {
   quizAPI,
   lessonAPI,
 } from '../services/api';
+import CertificateModal from '../components/CertificateModal';
 import toast from 'react-hot-toast';
 
 // Helper function to extract embeddable video URL (YouTube, Vimeo, MP4)
@@ -69,6 +70,7 @@ const CourseDetails = () => {
   const [enrolling, setEnrolling] = useState(false);
   const [completing, setCompleting] = useState(null);
   const [activeTab, setActiveTab] = useState('modules'); // 'modules' | 'assignments' | 'enrollments' | 'quizzes' | 'announcements'
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
 
   // Video / Lesson Player Modal
   const [activeLesson, setActiveLesson] = useState(null);
@@ -256,11 +258,31 @@ const CourseDetails = () => {
         setAnnouncements([]);
       }
 
-      // 6. Fetch Quizzes (Ensure array)
+      // 6. Fetch Quizzes & Student Attempts (Ensure array)
       try {
-        const quizzesRes = await quizAPI.getByCourse(courseId);
+        const [quizzesRes, quizAttemptsRes] = await Promise.all([
+          quizAPI.getByCourse(courseId),
+          studentId && !isLecturer && !isAdmin
+            ? quizAPI.getStudentResults(studentId).catch(() => ({ data: [] }))
+            : Promise.resolve({ data: [] }),
+        ]);
+
         const qList = Array.isArray(quizzesRes.data) ? quizzesRes.data : [];
-        setQuizzes(qList);
+        const attemptsList = Array.isArray(quizAttemptsRes?.data) ? quizAttemptsRes.data : [];
+
+        const mappedQuizzes = qList.map((q) => {
+          const attempt = attemptsList.find((a) => String(a.quizId) === String(q.id));
+          return {
+            ...q,
+            attempt: attempt || null,
+            isCompleted: !!attempt,
+            score: attempt ? attempt.score : null,
+            isPassed: attempt ? attempt.isPassed : null,
+            attemptedAt: attempt ? (attempt.attemptedAt || attempt.endTime) : null,
+          };
+        });
+
+        setQuizzes(mappedQuizzes);
       } catch (err) {
         console.warn('Quizzes fetch:', err);
         setQuizzes([]);
@@ -504,6 +526,10 @@ const CourseDetails = () => {
     0
   );
   const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+  const isCourseCompleted = !isLecturer && !isAdmin && isEnrolled && (
+    (totalLessons > 0 && completedLessons >= totalLessons) ||
+    progressPercent === 100
+  );
 
   // Filtered Assignments
   const filteredAssignments = assignments.filter((a) => {
@@ -598,9 +624,21 @@ const CourseDetails = () => {
                   Status: {course.status ? course.status.replace('_', ' ') : 'ACTIVE'}
                 </span>
               ) : isEnrolled ? (
-                <span className="text-xs font-bold px-3.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full flex items-center gap-1">
-                  <span>✓</span> Enrolled
-                </span>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="text-xs font-bold px-3.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full flex items-center gap-1">
+                    <span>✓</span> Enrolled
+                  </span>
+
+                  {isCourseCompleted && (
+                    <button
+                      onClick={() => setShowCertificateModal(true)}
+                      className="px-4 py-1 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-500 hover:to-yellow-500 text-slate-950 text-xs font-black rounded-full shadow-lg shadow-amber-400/25 transition active:scale-95 flex items-center gap-1.5"
+                    >
+                      <span>🎓</span>
+                      <span>Claim Certificate</span>
+                    </button>
+                  )}
+                </div>
               ) : (
                 <button
                   onClick={handleEnroll}
@@ -660,6 +698,33 @@ const CourseDetails = () => {
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
+              </div>
+            )}
+
+            {/* 🎉 Course Completed Notification Banner */}
+            {isCourseCompleted && (
+              <div className="mt-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/20 border border-amber-400/40 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-scaleUp">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-400 text-slate-950 flex items-center justify-center text-2xl font-black shadow-lg shadow-amber-400/30 shrink-0">
+                    🏆
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-amber-200">
+                      Congratulations! You have completed this course!
+                    </h4>
+                    <p className="text-[11px] text-slate-300 mt-0.5">
+                      Your verified Certificate of Completion has been generated and is ready to download.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowCertificateModal(true)}
+                  className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-500 hover:to-yellow-500 text-slate-950 text-xs font-black rounded-xl shadow-lg shadow-amber-400/30 transition active:scale-95 flex items-center justify-center gap-2 shrink-0"
+                >
+                  <span>🎓</span>
+                  <span>View Certificate (PDF)</span>
+                </button>
               </div>
             )}
           </div>
@@ -1289,27 +1354,90 @@ const CourseDetails = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {quizzes.map((quiz) => (
-                  <div key={quiz.id} className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 hover:shadow-md transition flex flex-col justify-between">
-                    <div>
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-bold text-slate-900 text-sm">{quiz.title}</h4>
-                        <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-extrabold">
-                          {quiz.durationMinutes || 30} mins
-                        </span>
+                {quizzes.map((quiz) => {
+                  const isCompleted = !!quiz.isCompleted;
+                  const isPassed = quiz.isPassed;
+
+                  return (
+                    <div
+                      key={quiz.id}
+                      className={`bg-white rounded-2xl p-5 shadow-xs border transition flex flex-col justify-between hover:shadow-md ${
+                        isCompleted
+                          ? isPassed
+                            ? 'border-emerald-200 bg-emerald-50/10'
+                            : 'border-rose-200 bg-rose-50/10'
+                          : 'border-slate-200'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex justify-between items-start gap-2">
+                          <h4 className="font-bold text-slate-900 text-sm leading-snug">{quiz.title}</h4>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isCompleted ? (
+                              <span
+                                className={`text-[10px] px-2.5 py-0.5 rounded-full font-extrabold uppercase ${
+                                  isPassed
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    : 'bg-rose-100 text-rose-800 border border-rose-200'
+                                }`}
+                              >
+                                {isPassed ? '✅ Passed' : '❌ Failed'}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-extrabold">
+                                {quiz.durationMinutes || 30} mins
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-slate-600 mt-2 line-clamp-2">
+                          {quiz.description || 'Assessment quiz'}
+                        </p>
+
+                        <div className="mt-3 flex items-center gap-2 text-[11px] font-medium text-slate-500">
+                          <span>⏱️ {quiz.durationMinutes || 30} mins</span>
+                          <span>·</span>
+                          <span>🎯 Pass: {quiz.passingScore || 50}%</span>
+                        </div>
+
+                        {/* Student Score Badge if completed */}
+                        {isCompleted && (
+                          <div
+                            className={`mt-3.5 p-3 rounded-xl border flex items-center justify-between text-xs font-bold ${
+                              isPassed
+                                ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                                : 'bg-rose-50 text-rose-900 border-rose-200'
+                            }`}
+                          >
+                            <span className="text-[11px]">Your Recorded Score:</span>
+                            <span className="text-sm font-black">{quiz.score ?? 0} pts</span>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-xs text-slate-600 mt-2 line-clamp-2">{quiz.description || 'Assessment quiz'}</p>
+
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end gap-2">
+                        {isCompleted ? (
+                          <button
+                            onClick={() => navigate(`/student/quiz/${quiz.id}`)}
+                            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+                          >
+                            <span>📊</span>
+                            <span>View Result Card</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => navigate(`/student/quiz/${quiz.id}`)}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5"
+                          >
+                            <span>📝</span>
+                            <span>Attempt Quiz</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end">
-                      <button
-                        onClick={() => navigate(`/student/quiz/${quiz.id}`)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition"
-                      >
-                        Attempt Quiz 📝
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2165,6 +2293,14 @@ const CourseDetails = () => {
           </div>
         </div>
       )}
+
+      {/* 📜 Certificate of Completion Modal */}
+      <CertificateModal
+        isOpen={showCertificateModal}
+        onClose={() => setShowCertificateModal(false)}
+        course={course}
+        user={user}
+      />
     </div>
   );
 };

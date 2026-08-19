@@ -1,5 +1,6 @@
 package com.lms.lms_backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -34,6 +35,7 @@ public class QuizQuestion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quizId", insertable = false, updatable = false)
+    @JsonIgnore
     private Quiz quiz;
 
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -42,6 +44,7 @@ public class QuizQuestion {
     public enum QuestionType {
         MCQ,
         TRUE_FALSE,
+        MULTIPLE_SELECT,
         SHORT_ANSWER
     }
 }

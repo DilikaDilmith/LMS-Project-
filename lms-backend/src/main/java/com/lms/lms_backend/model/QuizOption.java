@@ -1,5 +1,6 @@
 package com.lms.lms_backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -26,5 +27,6 @@ public class QuizOption {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "questionId", insertable = false, updatable = false)
+    @JsonIgnore
     private QuizQuestion question;
 }

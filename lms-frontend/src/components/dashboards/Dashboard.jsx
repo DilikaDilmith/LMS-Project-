@@ -127,7 +127,7 @@ const Dashboard = () => {
                 <p className="text-sm font-semibold text-gray-800">{user?.username}</p>
                 <p className="text-xs text-gray-400 capitalize">{getRoleName()}</p>
               </div>
-              
+
               <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
                 {user?.username?.charAt(0)?.toUpperCase()}
               </div>

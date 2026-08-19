@@ -506,4 +506,4 @@ const StudentDashboard = ({ data }) => {
   );
 };
 
-export default StudentDashboard;
+export default StudentDashboard;

@@ -58,10 +58,11 @@ public class JwtUtil {
         return extractExpiration(token).before(new Date());
     }
 
-    // 👇 මෙතනට instituteId add කරනවා
-    public String generateToken(String username, Long instituteId) {
+    // 👇 role ද JWT token එකට add කරනවා
+    public String generateToken(String username, Long instituteId, String role) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("instituteId", instituteId != null ? instituteId : 0); // System Adminට 0
+        claims.put("instituteId", instituteId != null ? instituteId : 0);
+        claims.put("role", role != null ? role : "");
         return createToken(claims, username);
     }
 

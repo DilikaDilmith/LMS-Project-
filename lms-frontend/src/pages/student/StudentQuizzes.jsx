@@ -13,7 +13,8 @@ const StudentQuizzes = () => {
   const [selectedCourse, setSelectedCourse] = useState('ALL');
   const [quizzes, setQuizzes] = useState([]);
   const [attempts, setAttempts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingInit, setLoadingInit] = useState(true);
+  const [loadingQuizzes, setLoadingQuizzes] = useState(false);
 
   useEffect(() => {
     if (studentId) {
@@ -21,51 +22,72 @@ const StudentQuizzes = () => {
     }
   }, [studentId]);
 
+  // Normalize course object: handle both EnrollmentResponse (courseId/courseName) and CourseResponse (id/name)
+  const normalizeCourse = (c) => ({
+    id: c.courseId ?? c.id,
+    name: c.courseName ?? c.name ?? c.title ?? `Course #${c.courseId ?? c.id}`,
+  });
+
   const fetchInitialData = async () => {
-    setLoading(true);
+    setLoadingInit(true);
     try {
-      // 1. Fetch enrolled courses
+      // 1. Fetch enrolled courses (returns EnrollmentResponse[])
       const enrolledRes = await courseAPI.getEnrolled(studentId);
-      const courses = enrolledRes.data || [];
+      const rawCourses = enrolledRes.data || [];
+      // Normalize to {id, name} — handles EnrollmentResponse and CourseResponse
+      const courses = rawCourses.map(normalizeCourse).filter((c) => c.id != null);
       setEnrolledCourses(courses);
 
-      // 2. Fetch student quiz attempts/results
+      // 2. Fetch student quiz attempts
       try {
         const attemptsRes = await quizAPI.getStudentResults(studentId);
         setAttempts(attemptsRes.data || []);
       } catch (err) {
-        console.error('Failed to fetch quiz attempts:', err);
+        console.warn('Failed to fetch quiz attempts:', err);
+        setAttempts([]);
       }
 
-      // 3. Fetch quizzes for all courses or first course
+      // 3. Fetch quizzes for all enrolled courses in parallel
       if (courses.length > 0) {
-        fetchAllQuizzes(courses);
+        await fetchAllQuizzes(courses);
       } else {
         setQuizzes([]);
       }
     } catch (error) {
       console.error('Failed to load quizzes data:', error);
-      toast.error('Failed to load quizzes');
+      toast.error('Failed to load quizzes. Make sure you are enrolled in courses.');
     } finally {
-      setLoading(false);
+      setLoadingInit(false);
     }
   };
 
   const fetchAllQuizzes = async (coursesList) => {
+    setLoadingQuizzes(true);
     try {
       const quizPromises = coursesList.map((course) =>
-        quizAPI.getByCourse(course.id).then((res) =>
-          (res.data || []).map((q) => ({
-            ...q,
-            courseName: course.name,
-          }))
-        ).catch(() => [])
+        quizAPI
+          .getByCourse(course.id)
+          .then((res) =>
+            (res.data || []).map((q) => ({
+              ...q,
+              courseName: course.name,
+              // ensure courseId field is present for filtering
+              courseId: q.courseId ?? course.id,
+            }))
+          )
+          .catch((err) => {
+            console.warn(`Failed to fetch quizzes for course ${course.id}:`, err);
+            return [];
+          })
       );
       const results = await Promise.all(quizPromises);
       const allQuizzes = results.flat();
       setQuizzes(allQuizzes);
     } catch (err) {
       console.error('Error fetching course quizzes:', err);
+      setQuizzes([]);
+    } finally {
+      setLoadingQuizzes(false);
     }
   };
 
@@ -74,142 +96,218 @@ const StudentQuizzes = () => {
       ? quizzes
       : quizzes.filter((q) => String(q.courseId) === String(selectedCourse));
 
-  const getQuizAttemptStatus = (quizId) => {
-    const attempt = attempts.find((a) => String(a.quizId) === String(quizId));
-    return attempt || null;
-  };
+  const getAttemptForQuiz = (quizId) =>
+    attempts.find((a) => String(a.quizId) === String(quizId)) || null;
 
-  if (loading) {
+  if (loadingInit) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 font-sans flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-slate-600 font-medium">Loading your quizzes...</p>
+          <div className="relative mx-auto w-16 h-16 mb-4">
+            <div className="w-16 h-16 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center text-xl">❓</div>
+          </div>
+          <h3 className="text-slate-800 font-extrabold text-base">Loading Your Quizzes</h3>
+          <p className="text-slate-500 text-xs mt-1">Fetching assessments from all enrolled courses...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
-      {/* Navbar */}
-      <nav className="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-20">
+      {/* Sticky Navbar */}
+      <nav className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 px-6 py-3.5 flex justify-between items-center shadow-xs">
         <div className="flex items-center gap-3">
-          <Link to="/dashboard" className="text-slate-500 hover:text-slate-800 transition text-sm">
-            ← Dashboard
-          </Link>
-          <h1 className="text-xl font-bold text-slate-800">❓ My Quizzes</h1>
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-lg font-black shadow-md shadow-blue-500/20">
+            ❓
+          </div>
+          <div>
+            <h1 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+              My Quizzes &amp; Assessments
+            </h1>
+            <p className="text-[11px] text-slate-500 font-medium">
+              {quizzes.length} quiz{quizzes.length !== 1 ? 'zes' : ''} across {enrolledCourses.length} course{enrolledCourses.length !== 1 ? 's' : ''}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-2">
           <Link
             to="/student/results"
-            className="text-xs font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 px-3.5 py-2 rounded-lg transition"
+            className="text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 px-3.5 py-2 rounded-xl transition border border-purple-200 flex items-center gap-1.5"
           >
-            📊 View All Results
+            <span>📊</span>
+            <span>My Results</span>
           </Link>
           <Link
-            to="/student/courses"
-            className="text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 px-3.5 py-2 rounded-lg transition"
+            to="/dashboard"
+            className="text-xs font-bold text-slate-700 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 px-4 py-2 rounded-xl transition flex items-center gap-1.5"
           >
-            📚 My Courses
+            <span>←</span>
+            <span>Dashboard</span>
           </Link>
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-4 mt-8">
-        {/* Header Summary */}
-        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-2xl p-6 text-white shadow-lg mb-8">
-          <h2 className="text-2xl font-extrabold">Online Assessments & Quizzes</h2>
-          <p className="text-blue-200 text-sm mt-1">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6">
+        {/* Hero Header */}
+        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-6 text-white shadow-xl mb-6">
+          <h2 className="text-2xl font-black">Online Assessments &amp; Quizzes</h2>
+          <p className="text-blue-200 text-xs mt-1">
             Test your knowledge and prepare for your exams across all enrolled courses.
           </p>
 
-          {/* Filter Dropdown */}
-          <div className="mt-5 flex items-center gap-3">
-            <span className="text-xs font-semibold text-blue-200">Filter by Course:</span>
-            <select
-              value={selectedCourse}
-              onChange={(e) => setSelectedCourse(e.target.value)}
-              className="bg-white/10 text-white border border-white/20 rounded-xl px-4 py-2 text-sm focus:outline-none focus:bg-slate-800"
-            >
-              <option value="ALL" className="text-slate-900">All Enrolled Courses ({enrolledCourses.length})</option>
-              {enrolledCourses.map((c) => (
-                <option key={c.id} value={c.id} className="text-slate-900">
-                  {c.name}
-                </option>
-              ))}
-            </select>
+          {/* Filter by Course */}
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <span className="text-xs font-bold text-blue-300">Filter by Course:</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setSelectedCourse('ALL')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${selectedCourse === 'ALL'
+                    ? 'bg-white text-slate-900'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+              >
+                All ({quizzes.length})
+              </button>
+              {enrolledCourses.map((c) => {
+                const count = quizzes.filter((q) => String(q.courseId) === String(c.id)).length;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedCourse(String(c.id))}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${selectedCourse === String(c.id)
+                        ? 'bg-white text-slate-900'
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                      }`}
+                  >
+                    {c.name} ({count})
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Quizzes List */}
-        {filteredQuizzes.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-sm">
+        {/* Quiz Cards */}
+        {loadingQuizzes ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-10 h-10 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin"></div>
+            <p className="text-xs text-slate-500 font-semibold">Loading quizzes from your courses...</p>
+          </div>
+        ) : enrolledCourses.length === 0 ? (
+          <div className="bg-white rounded-3xl p-14 text-center border border-slate-200 shadow-sm">
+            <div className="text-4xl mb-3">📚</div>
+            <h3 className="text-lg font-black text-slate-800">No Enrolled Courses</h3>
+            <p className="text-slate-500 text-xs mt-1">
+              Enroll in a course to access quizzes and assessments.
+            </p>
+            <Link
+              to="/courses"
+              className="mt-5 inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 transition"
+            >
+              Browse Courses
+            </Link>
+          </div>
+        ) : filteredQuizzes.length === 0 ? (
+          <div className="bg-white rounded-3xl p-14 text-center border border-slate-200 shadow-sm">
             <div className="text-4xl mb-3">❓</div>
-            <h3 className="text-lg font-bold text-slate-800">No Quizzes Found</h3>
-            <p className="text-slate-500 text-sm mt-1">
-              There are no active quizzes available for your selected filter right now.
+            <h3 className="text-lg font-black text-slate-800">No Quizzes Available</h3>
+            <p className="text-slate-500 text-xs mt-1">
+              {selectedCourse === 'ALL'
+                ? 'No quizzes have been published for your enrolled courses yet.'
+                : 'No quizzes published for this course yet. Check back soon!'}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredQuizzes.map((quiz) => {
-              const attempt = getQuizAttemptStatus(quiz.id);
+              const attempt = getAttemptForQuiz(quiz.id);
+              const isPassed = attempt?.isPassed;
+              const isCompleted = !!attempt;
 
               return (
                 <div
                   key={quiz.id}
-                  className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col justify-between"
+                  className={`bg-white rounded-3xl border shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden ${isCompleted
+                      ? isPassed
+                        ? 'border-emerald-200 hover:border-emerald-300'
+                        : 'border-rose-200 hover:border-rose-300'
+                      : 'border-slate-200 hover:border-blue-300'
+                    }`}
                 >
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md">
+                  {/* Card Header Banner */}
+                  <div className={`p-5 text-white ${isCompleted
+                      ? isPassed
+                        ? 'bg-gradient-to-r from-emerald-800 via-teal-900 to-slate-900'
+                        : 'bg-gradient-to-r from-rose-800 via-red-900 to-slate-900'
+                      : 'bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950'
+                    }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="px-2.5 py-1 bg-white/10 rounded-lg text-[10px] font-extrabold uppercase text-blue-200 border border-white/10">
                         {quiz.courseName || 'Course Quiz'}
                       </span>
-                      {attempt ? (
-                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${attempt.isPassed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {attempt.isPassed ? 'PASSED ✅' : 'FAILED ❌'}
+                      {isCompleted ? (
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${isPassed
+                            ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30'
+                            : 'bg-rose-400/20 text-rose-300 border border-rose-400/30'
+                          }`}>
+                          {isPassed ? '✅ Passed' : '❌ Failed'}
                         </span>
                       ) : (
-                        <span className="text-xs font-semibold px-2.5 py-1 bg-amber-50 text-amber-700 rounded-md">
-                          Available
+                        <span className="px-2.5 py-1 bg-amber-400/20 text-amber-300 border border-amber-400/30 rounded-full text-[10px] font-black uppercase">
+                          🟡 Not Attempted
                         </span>
                       )}
                     </div>
-
-                    <h3 className="text-lg font-bold text-slate-800">{quiz.title}</h3>
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                      {quiz.description || 'Test your knowledge on course materials.'}
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-slate-100 text-xs text-slate-600">
-                      <div>⏱️ Duration: <strong>{quiz.durationMinutes || 30} mins</strong></div>
-                      <div>🎯 Pass Score: <strong>{quiz.passingScore || 50}%</strong></div>
-                    </div>
+                    <h3 className="text-base font-black text-white leading-snug line-clamp-2 mt-1">
+                      {quiz.title}
+                    </h3>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
-                    {attempt ? (
-                      <div className="text-xs text-slate-500">
-                        Score: <strong className="text-slate-800">{attempt.score} Marks</strong>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-400">Not Attempted Yet</span>
-                    )}
+                  {/* Card Body */}
+                  <div className="p-5 flex-1 space-y-4">
+                    <p className="text-xs text-slate-500 line-clamp-2">
+                      {quiz.description || 'Test your knowledge on course materials with this assessment.'}
+                    </p>
 
-                    {attempt ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-slate-50 rounded-xl p-2.5 text-xs text-slate-600 border border-slate-100">
+                        ⏱️ <strong>{quiz.durationMinutes || 30} mins</strong>
+                      </div>
+                      <div className="bg-slate-50 rounded-xl p-2.5 text-xs text-slate-600 border border-slate-100">
+                        🎯 Pass: <strong>{quiz.passingScore || 50}%</strong>
+                      </div>
+                    </div>
+
+                    {isCompleted && (
+                      <div className={`flex items-center justify-between rounded-2xl px-4 py-2.5 text-xs font-bold border ${isPassed
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : 'bg-rose-50 text-rose-800 border-rose-200'
+                        }`}>
+                        <span>Your Score</span>
+                        <span className="text-base font-black">{attempt.score ?? 0} pts</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Footer */}
+                  <div className="px-5 pb-5">
+                    {isCompleted ? (
                       <Link
-                        to={`/student/quiz/${quiz.id}`}
-                        className="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold rounded-xl transition"
+                        to="/student/results"
+                        className="w-full block py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition text-center"
                       >
-                        Retake Quiz
+                        📊 View in Transcript
                       </Link>
                     ) : (
                       <button
                         onClick={() => navigate(`/student/quiz/${quiz.id}`)}
-                        className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-500/20 transition active:scale-95 flex items-center gap-1.5"
+                        className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black rounded-xl shadow-md shadow-blue-500/20 transition active:scale-95 flex items-center justify-center gap-2"
                       >
-                        Attempt Quiz 📝
+                        <span>📝</span>
+                        <span>Attempt Quiz Now</span>
                       </button>
                     )}
                   </div>

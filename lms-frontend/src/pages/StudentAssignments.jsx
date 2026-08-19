@@ -23,12 +23,21 @@ const StudentAssignments = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [loadingCourses, setLoadingCourses] = useState(true);
 
+  // The enrolled-courses endpoint returns EnrollmentResponse objects
+  // (courseId/courseName), while this page renders Course-shaped objects.
+  const normalizeCourse = (course) => ({
+    id: course.courseId ?? course.id,
+    name: course.courseName ?? course.name ?? course.title ?? `Course #${course.courseId ?? course.id}`,
+  });
+
   // Load enrolled courses
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         const res = await courseAPI.getEnrolled(studentId);
-        const enrolledCourses = res.data || [];
+        const enrolledCourses = (res.data || [])
+          .map(normalizeCourse)
+          .filter((course) => course.id != null);
         setCourses(enrolledCourses);
         
         // If no courseId in URL but we have courses, select first one

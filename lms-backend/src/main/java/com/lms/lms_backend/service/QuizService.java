@@ -4,12 +4,14 @@ import com.lms.lms_backend.dto.*;
 import com.lms.lms_backend.model.*;
 import com.lms.lms_backend.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class QuizService {
@@ -32,6 +34,9 @@ public class QuizService {
     @Autowired
     private CourseRepository courseRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     // 👇 Notification Service Inject කරන්න
     @Autowired
     private NotificationService notificationService;
@@ -39,6 +44,7 @@ public class QuizService {
     public Quiz createQuiz(QuizRequest request) {
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new RuntimeException("Course not found!"));
+        ensureQuizManagementAccess(course);
 
         Quiz quiz = new Quiz();
         quiz.setTitle(request.getTitle());
@@ -48,6 +54,39 @@ public class QuizService {
         quiz.setPassingScore(request.getPassingScore());
 
         return quizRepository.save(quiz);
+    }
+
+    @Transactional
+    public Quiz updateQuiz(Long quizId, QuizRequest request) {
+        Quiz quiz = getQuizById(quizId);
+        Course course = courseRepository.findById(quiz.getCourseId())
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+        ensureQuizManagementAccess(course);
+
+        quiz.setTitle(request.getTitle());
+        quiz.setDescription(request.getDescription());
+        quiz.setDurationMinutes(request.getDurationMinutes());
+        quiz.setPassingScore(request.getPassingScore());
+        return quizRepository.save(quiz);
+    }
+
+    @Transactional
+    public void deleteQuiz(Long quizId) {
+        Quiz quiz = getQuizById(quizId);
+        Course course = courseRepository.findById(quiz.getCourseId())
+                .orElseThrow(() -> new RuntimeException("Course not found!"));
+        ensureQuizManagementAccess(course);
+
+        if (!attemptRepository.findByQuizId(quizId).isEmpty()) {
+            throw new RuntimeException("This quiz has student submissions and cannot be deleted.");
+        }
+
+        List<QuizQuestion> questions = questionRepository.findByQuizId(quizId);
+        for (QuizQuestion question : questions) {
+            optionRepository.deleteAll(optionRepository.findByQuestionId(question.getId()));
+        }
+        questionRepository.deleteAll(questions);
+        quizRepository.delete(quiz);
     }
 
     @Transactional
@@ -84,10 +123,6 @@ public class QuizService {
     public QuizResultResponse submitQuiz(Long quizId, Long studentId, QuizAttemptRequest request) {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new RuntimeException("Quiz not found!"));
-
-        if (attemptRepository.findByQuizIdAndStudentId(quizId, studentId).isPresent()) {
-            throw new RuntimeException("You have already attempted this quiz!");
-        }
 
         QuizAttempt attempt = new QuizAttempt();
         attempt.setQuizId(quizId);
@@ -179,6 +214,19 @@ public class QuizService {
         return attemptRepository.findByStudentId(studentId);
     }
 
+    // Get all student attempts for a specific quiz (for Lecturer)
+    public List<QuizAttempt> getQuizSubmissions(Long quizId) {
+        return attemptRepository.findByQuizId(quizId);
+    }
+
+    // Get all student attempts across all quizzes for a course (for Lecturer)
+    public List<QuizAttempt> getQuizSubmissionsByCourse(Long courseId) {
+        List<Quiz> quizzes = quizRepository.findByCourseId(courseId);
+        List<Long> quizIds = quizzes.stream().map(Quiz::getId).collect(Collectors.toList());
+        if (quizIds.isEmpty()) return List.of();
+        return attemptRepository.findByQuizIdIn(quizIds);
+    }
+
     public Quiz getQuizById(Long quizId) {
         return quizRepository.findById(quizId)
                 .orElseThrow(() -> new RuntimeException("Quiz not found!"));
@@ -192,4 +240,23 @@ public class QuizService {
         }
         return questions;
     }
-}
+
+    private void ensureQuizManagementAccess(Course course) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found!"));
+
+        if (user.getRole() == Role.ROLE_SYSTEM_ADMIN) {
+            return;
+        }
+        if (user.getRole() == Role.ROLE_INSTITUTE_ADMIN
+                && user.getInstituteId() != null
+                && user.getInstituteId().equals(course.getInstituteId())) {
+            return;
+        }
+        if (user.getRole() == Role.ROLE_LECTURER && user.getId().equals(course.getLecturerId())) {
+            return;
+        }
+        throw new RuntimeException("You can only manage quizzes for courses you teach.");
+    }
+}

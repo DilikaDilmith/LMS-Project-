@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> {
     List<QuizAttempt> findByStudentId(Long studentId);
     Optional<QuizAttempt> findByQuizIdAndStudentId(Long quizId, Long studentId);
+    List<QuizAttempt> findByQuizId(Long quizId);
+    List<QuizAttempt> findByQuizIdIn(List<Long> quizIds);
 }
