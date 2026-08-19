@@ -21,12 +21,18 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
+    // ================================================
+    // 1. GET USER PROFILE
+    // ================================================
     @GetMapping("/{userId}")
     public User getUserProfile(@PathVariable Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found!"));
     }
 
+    // ================================================
+    // 2. UPDATE PROFILE
+    // ================================================
     @PutMapping("/{userId}")
     @Auditable(action = "UPDATE_PROFILE", description = "User updates profile")
     public User updateProfile(@PathVariable Long userId, @RequestBody User request) {
@@ -41,6 +47,9 @@ public class UserController {
         return userRepository.save(user);
     }
 
+    // ================================================
+    // 3. GET ALL STUDENTS (Institute Admin)
+    // ================================================
     @GetMapping("/students")
     public List<User> getAllStudents() {
         try {
@@ -52,6 +61,9 @@ public class UserController {
         }
     }
 
+    // ================================================
+    // 4. GET STUDENTS BY INSTITUTE (Institute Admin)
+    // ================================================
     @GetMapping("/institute/{instituteId}/students")
     public List<User> getStudentsByInstitute(@PathVariable Long instituteId) {
         try {
@@ -68,6 +80,9 @@ public class UserController {
         }
     }
 
+    // ================================================
+    // 5. GET LECTURERS BY INSTITUTE (Institute Admin)
+    // ================================================
     @GetMapping("/institute/{instituteId}/lecturers")
     public List<User> getLecturersByInstitute(@PathVariable Long instituteId) {
         try {
@@ -82,6 +97,9 @@ public class UserController {
         }
     }
 
+    // ================================================
+    // 6. GET PENDING USERS (Institute Admin)
+    // ================================================
     @GetMapping("/pending")
     @PreAuthorize("hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public List<User> getPendingUsers(Authentication authentication) {
@@ -97,6 +115,9 @@ public class UserController {
         return userRepository.findByInstituteIdAndStatusIgnoreCase(instituteId, "PENDING");
     }
 
+    // ================================================
+    // 7. GET PENDING USERS BY INSTITUTE (System Admin)
+    // ================================================
     @GetMapping("/institute/{instituteId}/pending")
     @PreAuthorize("hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     public List<User> getPendingUsersByInstitute(@PathVariable Long instituteId, Authentication authentication) {
@@ -110,6 +131,9 @@ public class UserController {
         return userRepository.findByInstituteIdAndStatusIgnoreCase(instituteId, "PENDING");
     }
 
+    // ================================================
+    // 8. APPROVE USER (Institute Admin / System Admin)
+    // ================================================
     @PutMapping("/{userId}/approve")
     @PreAuthorize("hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     @Auditable(action = "APPROVE_USER", description = "Admin approves pending user registration")
@@ -126,6 +150,9 @@ public class UserController {
         return userRepository.save(user);
     }
 
+    // ================================================
+    // 9. REJECT USER (Institute Admin / System Admin)
+    // ================================================
     @PutMapping("/{userId}/reject")
     @PreAuthorize("hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     @Auditable(action = "REJECT_USER", description = "Admin rejects pending user registration")
@@ -142,6 +169,9 @@ public class UserController {
         return userRepository.save(user);
     }
 
+    // ================================================
+    // 10. UPDATE USER STATUS (Institute Admin / System Admin)
+    // ================================================
     @PutMapping("/{userId}/status")
     @PreAuthorize("hasRole('INSTITUTE_ADMIN') or hasRole('SYSTEM_ADMIN')")
     @Auditable(action = "UPDATE_USER_STATUS", description = "Admin updates user status")
@@ -154,6 +184,27 @@ public class UserController {
         return userRepository.save(user);
     }
 
+    // ================================================
+    // 👇 NEW: 11. GET ALL USERS (SYSTEM ADMIN ONLY)
+    // ================================================
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    // ================================================
+    // 👇 NEW: 12. GET USERS BY INSTITUTE (SYSTEM ADMIN)
+    // ================================================
+    @GetMapping("/institute/{instituteId}/all")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    public List<User> getUsersByInstitute(@PathVariable Long instituteId) {
+        return userRepository.findByInstituteId(instituteId);
+    }
+
+    // ================================================
+    // PRIVATE HELPER METHODS
+    // ================================================
     private void assertCanManageUser(User targetUser, Authentication authentication) {
         if (authentication == null || isSystemAdmin(authentication)) {
             return;

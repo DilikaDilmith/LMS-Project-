@@ -29,6 +29,11 @@ import AdminLecturers from './pages/admin/AdminLecturers';
 import AdminCourses from './pages/admin/AdminCourses';
 import AdminReports from './pages/admin/AdminReports';
 
+// 👇 NEW: System Admin Pages
+import SystemInstitutes from './pages/system/SystemInstitutes';
+import SystemAuditLogs from './pages/system/SystemAuditLogs';
+import SystemUsers from './pages/system/SystemUsers';
+
 // 👇 parent Pages
 import ParentChildDetails from './pages/parent/ParentChildDetails';
 import LinkChild from './pages/parent/LinkChild';
@@ -314,6 +319,7 @@ function App() {
             }
           />
 
+          // Student Quizzes Route
           <Route
             path="/student/quizzes"
             element={
@@ -322,6 +328,19 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/system/users"
+            element={
+              <ProtectedRoute>
+                <SystemUsers />
+              </ProtectedRoute>
+            }
+          />
+
+
+          <Route path="/system/institutes" element={<ProtectedRoute><SystemInstitutes /></ProtectedRoute>} />
+          <Route path="/system/audit-logs" element={<ProtectedRoute><SystemAuditLogs /></ProtectedRoute>} />
 
           {/* Default Route */}
           <Route path="/" element={<Navigate to="/login" />} />

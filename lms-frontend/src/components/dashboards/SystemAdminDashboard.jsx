@@ -428,6 +428,14 @@ const SystemAdminDashboard = ({ data }) => {
               description="View platform reports"
               color="purple"
             />
+
+            <ManagementAction
+              to="/system/audit-logs"
+              icon="📋"
+              title="Audit Logs"
+              description="Review system activity logs"
+              color="indigo"
+            />
           </div>
         </section>
 
