@@ -71,78 +71,128 @@ const AdminStudents = () => {
   const pendingStudents = students.filter(s => s.status === 'PENDING');
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b p-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-blue-600">👨‍🎓 Manage Students</h1>
-        <Link to="/dashboard" className="text-blue-600 hover:underline text-sm">← Back</Link>
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <nav className="border-b border-slate-200 bg-white/90 px-4 py-4 shadow-sm backdrop-blur sm:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl shadow-sm shadow-blue-200">
+              👨‍🎓
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Institute administration</p>
+              <h1 className="truncate text-lg font-bold text-slate-900 sm:text-xl">Manage Students</h1>
+            </div>
+          </div>
+          <Link
+            to="/dashboard"
+            className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+          >
+            <span aria-hidden="true">←</span> Dashboard
+          </Link>
+        </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-8 lg:py-10">
+        <div className="mb-8 max-w-2xl">
+          <p className="mb-2 text-sm font-semibold text-blue-600">Student directory</p>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Keep your student roster moving.</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500 sm:text-base">Review registrations, approve new students, and manage account access from one place.</p>
+        </div>
+
         {/* Stats */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-          <p className="text-sm text-gray-500">Total Students: <span className="font-bold text-gray-800">{students.length}</span></p>
-          {pendingStudents.length > 0 && (
-            <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-full border border-amber-200">
-              ⚠️ {pendingStudents.length} Pending Approval{pendingStudents.length > 1 ? 's' : ''}
-            </span>
-          )}
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between">
+              <p className="text-sm font-medium text-slate-500">Total students</p>
+              <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-lg">👥</span>
+            </div>
+            <p className="mt-4 text-3xl font-bold text-slate-900">{students.length}</p>
+            <p className="mt-1 text-xs text-slate-400">Registered in your institute</p>
+          </div>
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
+            <div className="flex items-start justify-between">
+              <p className="text-sm font-medium text-amber-800">Pending review</p>
+              <span className="rounded-lg bg-amber-100 px-2.5 py-1 text-lg">⏳</span>
+            </div>
+            <p className="mt-4 text-3xl font-bold text-amber-900">{pendingStudents.length}</p>
+            <p className="mt-1 text-xs text-amber-700/70">Registration{pendingStudents.length === 1 ? '' : 's'} awaiting approval</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
+            <div className="flex items-start justify-between">
+              <p className="text-sm font-medium text-emerald-800">Active access</p>
+              <span className="rounded-lg bg-emerald-100 px-2.5 py-1 text-lg">✓</span>
+            </div>
+            <p className="mt-4 text-3xl font-bold text-emerald-900">{students.filter(s => s.status === 'ACTIVE').length}</p>
+            <p className="mt-1 text-xs text-emerald-700/70">Students with active accounts</p>
+          </div>
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+            <div>
+              <h3 className="font-bold text-slate-900">Student roster</h3>
+              <p className="mt-1 text-xs text-slate-500">Manage registration status and account access.</p>
+            </div>
+            {pendingStudents.length > 0 && (
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
+                {pendingStudents.length} pending approval{pendingStudents.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+            <table className="w-full min-w-190 text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50/80">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Phone</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-slate-100">
                 {students.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center text-gray-400">No students found</td>
+                    <td colSpan="6" className="px-6 py-12 text-center text-slate-400">No students found</td>
                   </tr>
                 ) : (
                   students.map((student) => (
-                    <tr key={student.id} className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-3 text-gray-600">#{student.id}</td>
-                      <td className="px-6 py-3 font-medium text-gray-800">{student.firstName} {student.lastName}</td>
-                      <td className="px-6 py-3 text-gray-600">{student.email}</td>
-                      <td className="px-6 py-3 text-gray-600">{student.phone || '-'}</td>
-                      <td className="px-6 py-3">
+                    <tr key={student.id} className="transition hover:bg-blue-50/40">
+                      <td className="px-6 py-4 font-mono text-xs text-slate-400">#{student.id}</td>
+                      <td className="px-6 py-4 font-semibold text-slate-800">{student.firstName} {student.lastName}</td>
+                      <td className="px-6 py-4 text-slate-600">{student.email}</td>
+                      <td className="px-6 py-4 text-slate-600">{student.phone || '-'}</td>
+                      <td className="px-6 py-4">
                         <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                          student.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                          student.status === 'PENDING' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
-                          'bg-red-100 text-red-700'
+                          student.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' :
+                          student.status === 'PENDING' ? 'border border-amber-300 bg-amber-100 text-amber-800' :
+                          'bg-rose-100 text-rose-700'
                         }`}>
                           {student.status || 'ACTIVE'}
                         </span>
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="px-6 py-4">
                         {student.status === 'PENDING' ? (
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleApprove(student.id)}
-                              className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition active:scale-95"
+                              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95"
                             >
-                              Approve ✅
+                              Approve
                             </button>
                             <button
                               onClick={() => handleReject(student.id)}
-                              className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition active:scale-95"
+                              className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-600 transition hover:bg-rose-50 active:scale-95"
                             >
-                              Reject ❌
+                              Reject
                             </button>
                           </div>
                         ) : (
                           <button
                             onClick={() => handleStatusChange(student.id, student.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
-                            className={`text-xs font-medium ${student.status === 'ACTIVE' ? 'text-red-600 hover:underline' : 'text-green-600 hover:underline'}`}
+                            className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${student.status === 'ACTIVE' ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}
                           >
                             {student.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                           </button>
@@ -154,8 +204,8 @@ const AdminStudents = () => {
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 };

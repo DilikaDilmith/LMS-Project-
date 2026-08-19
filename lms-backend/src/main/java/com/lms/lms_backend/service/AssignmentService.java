@@ -84,20 +84,20 @@ public class AssignmentService {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Assignment not found!"));
 
-        if (submissionRepository.findByAssignmentIdAndStudentId(assignmentId, studentId).isPresent()) {
-            throw new RuntimeException("You have already submitted this assignment!");
-        }
-
         AssignmentSubmission.SubmissionStatus status = AssignmentSubmission.SubmissionStatus.SUBMITTED;
-        if (LocalDateTime.now().isAfter(assignment.getDueDate())) {
+        if (assignment.getDueDate() != null && LocalDateTime.now().isAfter(assignment.getDueDate())) {
             status = AssignmentSubmission.SubmissionStatus.LATE;
         }
 
-        AssignmentSubmission submission = new AssignmentSubmission();
+        AssignmentSubmission submission = submissionRepository
+                .findByAssignmentIdAndStudentId(assignmentId, studentId)
+                .orElseGet(AssignmentSubmission::new);
+
         submission.setAssignmentId(assignmentId);
         submission.setStudentId(studentId);
         submission.setFileUrl(request.getFileUrl());
         submission.setStatus(status);
+        submission.setSubmittedAt(LocalDateTime.now());
 
         AssignmentSubmission saved = submissionRepository.save(submission);
         return mapToSubmissionResponse(saved);
@@ -182,10 +182,18 @@ public class AssignmentService {
     }
 
     private SubmissionResponse mapToSubmissionResponse(AssignmentSubmission submission) {
+        User student = userRepository.findById(submission.getStudentId()).orElse(null);
+        String studentName = student == null
+            ? "Unknown Student"
+            : String.format("%s %s", student.getFirstName(), student.getLastName()).trim();
+        String studentEmail = student == null ? "" : student.getEmail();
+
         return new SubmissionResponse(
                 submission.getId(),
                 submission.getAssignmentId(),
                 submission.getStudentId(),
+            studentName,
+            studentEmail,
                 submission.getFileUrl(),
                 submission.getStatus(),
                 submission.getMarks(),

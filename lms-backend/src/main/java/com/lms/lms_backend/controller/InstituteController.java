@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,7 +24,8 @@ public class InstituteController {
     @Autowired
     private com.lms.lms_backend.repository.InstituteRepository instituteRepository;
 
-    // PUBLIC endpoint — used on the Register page to list active institutes (no auth required)
+    // PUBLIC endpoint — used on the Register page to list active institutes (no
+    // auth required)
     @GetMapping("/public")
     public List<InstituteResponse> getPublicInstitutes() {
         return instituteService.getAllInstitutes().stream()
@@ -44,7 +46,7 @@ public class InstituteController {
         return instituteService.getAllInstitutes();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:[0-9]+}")
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     public Institute getInstituteById(@PathVariable Long id) {
         return instituteService.getInstituteById(id);
@@ -55,5 +57,39 @@ public class InstituteController {
     @Auditable(action = "UPDATE_INSTITUTE_STATUS", description = "System Admin updates institute status")
     public InstituteResponse updateStatus(@PathVariable Long id, @RequestParam Institute.InstituteStatus status) {
         return instituteService.updateInstituteStatus(id, status);
+    }
+
+
+    // ================================================
+    // 1. GET ALL INSTITUTES WITH SUBSCRIPTION DETAILS (System Admin)
+    // ================================================
+    
+    @GetMapping("/subscriptions")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    public List<Institute> getAllInstitutesWithSubscriptions() {
+        return instituteRepository.findAllByOrderBySubscriptionPlanAsc();
+    }
+
+    // ================================================
+    // 2. UPDATE INSTITUTE SUBSCRIPTION PLAN (System Admin)
+    // ================================================
+    
+    @PutMapping("/{instituteId}/subscription")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    @Auditable(action = "UPDATE_SUBSCRIPTION", description = "System Admin updates institute subscription")
+    public Institute updateSubscription(
+            @PathVariable Long instituteId,
+            @RequestParam Institute.SubscriptionPlan plan) {
+
+        Institute institute = instituteRepository.findById(instituteId)
+                .orElseThrow(() -> new RuntimeException("Institute not found!"));
+
+        institute.setSubscriptionPlan(plan);
+
+        // If plan changed, extend end date by 1 month from today
+        institute.setSubscriptionStartDate(LocalDateTime.now());
+        institute.setSubscriptionEndDate(LocalDateTime.now().plusMonths(1));
+
+        return instituteRepository.save(institute);
     }
 }

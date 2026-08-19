@@ -141,39 +141,70 @@ const LecturerAssignments = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
+    <div className="min-h-screen bg-slate-50 pb-12 text-slate-900">
       {/* Navbar */}
-      <nav className="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <Link to="/dashboard" className="text-slate-500 hover:text-slate-800 text-sm">
-            ← Dashboard
+      <nav className="border-b border-slate-200 bg-white/90 px-4 py-4 shadow-sm backdrop-blur sm:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl shadow-sm shadow-blue-200">📝</div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Teaching workspace</p>
+              <h1 className="truncate text-lg font-bold text-slate-900 sm:text-xl">Assignments</h1>
+            </div>
+          </div>
+          <Link to="/dashboard" className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">
+            <span aria-hidden="true">←</span> Dashboard
           </Link>
-          <h1 className="text-xl font-bold text-slate-800">📝 Manage Assignments</h1>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          disabled={courses.length === 0}
-          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-semibold rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5"
-        >
-          + Create Assignment
-        </button>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-4 mt-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-8 lg:py-10">
+        <div className="mb-8 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+          <div className="max-w-2xl">
+            <p className="mb-2 text-sm font-semibold text-blue-600">Coursework management</p>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Design work that moves learning forward.</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500 sm:text-base">Create purposeful assignments, set expectations, and keep submissions ready for grading.</p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            disabled={courses.length === 0}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span aria-hidden="true">+</span> Create assignment
+          </button>
+        </div>
+
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between"><p className="text-sm font-medium text-slate-500">Teaching courses</p><span className="rounded-lg bg-blue-50 px-2.5 py-1 text-lg">📚</span></div>
+            <p className="mt-4 text-3xl font-bold text-slate-900">{courses.length}</p>
+            <p className="mt-1 text-xs text-slate-400">Courses available to manage</p>
+          </div>
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5 shadow-sm">
+            <div className="flex items-start justify-between"><p className="text-sm font-medium text-indigo-800">Current assignments</p><span className="rounded-lg bg-indigo-100 px-2.5 py-1 text-lg">📝</span></div>
+            <p className="mt-4 text-3xl font-bold text-indigo-900">{assignments.length}</p>
+            <p className="mt-1 text-xs text-indigo-700/70">For the selected course</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
+            <div className="flex items-start justify-between"><p className="text-sm font-medium text-emerald-800">Selected course</p><span className="rounded-lg bg-emerald-100 px-2.5 py-1 text-lg">✓</span></div>
+            <p className="mt-4 truncate text-xl font-bold text-emerald-900">{courses.find((course) => String(course.id) === String(selectedCourseId))?.name || 'None selected'}</p>
+            <p className="mt-1 text-xs text-emerald-700/70">Active management view</p>
+          </div>
+        </div>
+
         {/* Course Selector & Banner */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <section className="mb-8 flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:p-6">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">Select Teaching Course</h2>
-            <p className="text-xs text-slate-500 mt-1">
-              Choose a course to view and manage assigned coursework.
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Course context</p>
+            <h3 className="mt-1 text-lg font-bold text-slate-900">Select a teaching course</h3>
+            <p className="mt-1 text-sm text-slate-500">Choose a course to view and manage its coursework.</p>
           </div>
 
-          <div className="w-full md:w-72">
+          <div className="w-full md:w-80">
             <select
               value={selectedCourseId}
               onChange={(e) => setSelectedCourseId(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             >
               {courses.length === 0 ? (
                 <option value="">No courses available</option>
@@ -186,7 +217,7 @@ const LecturerAssignments = () => {
               )}
             </select>
           </div>
-        </div>
+        </section>
 
         {/* Assignments List */}
         {loadingAssignments ? (
@@ -195,38 +226,38 @@ const LecturerAssignments = () => {
             <p className="mt-3 text-slate-500 text-sm">Loading course assignments...</p>
           </div>
         ) : assignments.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-sm">
-            <div className="text-4xl mb-3">📝</div>
-            <h3 className="text-lg font-bold text-slate-800">No Assignments Yet</h3>
-            <p className="text-slate-500 text-sm mt-1 mb-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-4xl">📝</div>
+            <h3 className="mt-5 text-lg font-bold text-slate-800">No assignments yet</h3>
+            <p className="mb-6 mt-1 text-sm text-slate-500">
               Create your first assignment for this course so students can submit their work.
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-md transition inline-flex items-center gap-2"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
             >
               + Create First Assignment
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {assignments.map((assignment) => (
               <div
                 key={assignment.id}
-                className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition flex flex-col justify-between"
+                className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg"
               >
                 <div>
                   <div className="flex justify-between items-start mb-3">
-                    <span className="text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-700 rounded-lg">
+                    <span className="rounded-lg bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
                       Max Marks: {assignment.maxMarks ?? 100}
                     </span>
-                    <span className="text-xs font-medium text-slate-500">
-                      📅 Due: {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'N/A'}
+                      <span className="text-xs font-medium text-slate-500">
+                      Due {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-slate-800">{assignment.title}</h3>
-                  <p className="text-xs text-slate-500 mt-2 line-clamp-3 leading-relaxed">
+                  <h3 className="text-lg font-bold text-slate-900">{assignment.title}</h3>
+                  <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-500">
                     {assignment.description || 'No description provided.'}
                   </p>
                 </div>
@@ -234,7 +265,7 @@ const LecturerAssignments = () => {
                 <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
                   <Link
                     to="/lecturer/grading"
-                    className="w-full text-center py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
+                    className="w-full rounded-lg bg-slate-100 py-2.5 text-center text-xs font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700"
                   >
                     Grade Submissions →
                   </Link>
@@ -243,7 +274,7 @@ const LecturerAssignments = () => {
             ))}
           </div>
         )}
-      </div>
+      </main>
 
       {/* Create Assignment Modal */}
       {showCreateModal && (

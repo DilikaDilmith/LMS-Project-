@@ -94,9 +94,17 @@ public class EnrollmentService {
 
     // Helper method
     private EnrollmentResponse mapToResponse(Enrollment enrollment, String courseName) {
+        User student = userRepository.findById(enrollment.getStudentId()).orElse(null);
+        String studentName = student == null
+            ? "Unknown Student"
+            : String.format("%s %s", student.getFirstName(), student.getLastName()).trim();
+        String studentEmail = student == null ? "" : student.getEmail();
+
         return new EnrollmentResponse(
                 enrollment.getId(),
                 enrollment.getStudentId(),
+            studentName,
+            studentEmail,
                 enrollment.getCourseId(),
                 courseName,
                 enrollment.getInstituteId(),

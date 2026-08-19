@@ -33,6 +33,8 @@ import AdminReports from './pages/admin/AdminReports';
 import SystemInstitutes from './pages/system/SystemInstitutes';
 import SystemAuditLogs from './pages/system/SystemAuditLogs';
 import SystemUsers from './pages/system/SystemUsers';
+import SystemReports from './pages/system/SystemReports';
+import SystemSubscriptions from './pages/system/SystemSubscriptions';
 
 // 👇 parent Pages
 import ParentChildDetails from './pages/parent/ParentChildDetails';
@@ -62,6 +64,28 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return children;
+};
+
+const SystemAdminRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const isSystemAdmin = user.role === 'ROLE_SYSTEM_ADMIN' || user.role === 'SYSTEM_ADMIN';
+  return isSystemAdmin ? children : <Navigate to="/dashboard" replace />;
 };
 
 function App() {
@@ -332,15 +356,31 @@ function App() {
           <Route
             path="/system/users"
             element={
-              <ProtectedRoute>
+              <SystemAdminRoute>
                 <SystemUsers />
-              </ProtectedRoute>
+              </SystemAdminRoute>
             }
           />
 
+          <Route
+            path="/system/reports"
+            element={
+              <SystemAdminRoute>
+                <SystemReports />
+              </SystemAdminRoute>
+            }
+          />
+          <Route
+            path="/system/subscriptions"
+            element={
+              <SystemAdminRoute>
+                <SystemSubscriptions />
+              </SystemAdminRoute>
+            }
+          />
 
-          <Route path="/system/institutes" element={<ProtectedRoute><SystemInstitutes /></ProtectedRoute>} />
-          <Route path="/system/audit-logs" element={<ProtectedRoute><SystemAuditLogs /></ProtectedRoute>} />
+          <Route path="/system/institutes" element={<SystemAdminRoute><SystemInstitutes /></SystemAdminRoute>} />
+          <Route path="/system/audit-logs" element={<SystemAdminRoute><SystemAuditLogs /></SystemAdminRoute>} />
 
           {/* Default Route */}
           <Route path="/" element={<Navigate to="/login" />} />

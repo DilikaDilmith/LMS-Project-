@@ -77,7 +77,7 @@ const StatCard = ({
               text-2xl sm:text-3xl
               font-bold
               ${styles.value}
-              break-words
+              wrap-break-word
             `}
           >
             {value}
@@ -257,7 +257,7 @@ const SystemAdminDashboard = ({ data }) => {
             className="
               relative overflow-hidden
               rounded-2xl
-              bg-gradient-to-r
+              bg-linear-to-r
               from-slate-800
               via-blue-800
               to-indigo-800

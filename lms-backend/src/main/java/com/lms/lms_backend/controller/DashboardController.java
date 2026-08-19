@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime; // 👈 NEW Import (Reports සඳහා)
 import java.util.*;
 
 @RestController
@@ -32,6 +33,9 @@ public class DashboardController {
     @Autowired
     private ParentStudentRepository parentStudentRepository;
 
+    // ================================================
+    // STUDENT DASHBOARD
+    // ================================================
     @GetMapping({"/student", "/student/{studentId}"})
     @PreAuthorize("isAuthenticated()")
     public Map<String, Object> getStudentDashboard(@PathVariable(required = false) Long studentId) {
@@ -125,6 +129,9 @@ public class DashboardController {
         return data;
     }
 
+    // ================================================
+    // LECTURER DASHBOARD
+    // ================================================
     @GetMapping({"/lecturer", "/lecturer/{lecturerId}"})
     @PreAuthorize("isAuthenticated()")
     public Map<String, Object> getLecturerDashboard(@PathVariable(required = false) Long lecturerId) {
@@ -175,6 +182,9 @@ public class DashboardController {
         return data;
     }
 
+    // ================================================
+    // INSTITUTE ADMIN DASHBOARD
+    // ================================================
     @GetMapping({"/institute", "/institute/{instituteId}"})
     @PreAuthorize("isAuthenticated()")
     public Map<String, Object> getInstituteDashboard(@PathVariable(required = false) Long instituteId) {
@@ -213,6 +223,9 @@ public class DashboardController {
         return data;
     }
 
+    // ================================================
+    // SYSTEM ADMIN DASHBOARD (Overview)
+    // ================================================
     @GetMapping("/system-admin")
     @PreAuthorize("isAuthenticated()")
     public Map<String, Object> getSystemAdminDashboard() {
@@ -237,6 +250,9 @@ public class DashboardController {
         return data;
     }
 
+    // ================================================
+    // PARENT DASHBOARD
+    // ================================================
     @GetMapping({"/parent", "/parent/{parentId}"})
     @PreAuthorize("isAuthenticated()")
     public Map<String, Object> getParentDashboard(@PathVariable(required = false) Long parentId) {
@@ -293,5 +309,109 @@ public class DashboardController {
         data.put("children", childrenData);
         return data;
     }
-}
 
+    // ================================================
+    // 👇 NEW: SYSTEM ADMIN FULL REPORTS
+    // ================================================
+    @GetMapping("/system-admin/reports")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    public Map<String, Object> getSystemReports() {
+        Map<String, Object> reports = new HashMap<>();
+
+        // 1. Institute Stats
+        List<Institute> allInstitutes = instituteRepository.findAll();
+        long totalInstitutes = allInstitutes.size();
+        long activeInstitutes = allInstitutes.stream()
+                .filter(i -> i.getStatus() == Institute.InstituteStatus.ACTIVE).count();
+        long pendingInstitutes = allInstitutes.stream()
+                .filter(i -> i.getStatus() == Institute.InstituteStatus.PENDING).count();
+        long suspendedInstitutes = allInstitutes.stream()
+                .filter(i -> i.getStatus() == Institute.InstituteStatus.SUSPENDED).count();
+
+        Map<String, Object> instituteStats = new HashMap<>();
+        instituteStats.put("total", totalInstitutes);
+        instituteStats.put("active", activeInstitutes);
+        instituteStats.put("pending", pendingInstitutes);
+        instituteStats.put("suspended", suspendedInstitutes);
+        reports.put("instituteStats", instituteStats);
+
+        // 2. User Stats (by Role)
+        List<User> allUsers = userRepository.findAll();
+        long totalUsers = allUsers.size();
+        long students = allUsers.stream()
+                .filter(u -> u.getRole() == Role.ROLE_STUDENT).count();
+        long lecturers = allUsers.stream()
+                .filter(u -> u.getRole() == Role.ROLE_LECTURER).count();
+        long parents = allUsers.stream()
+                .filter(u -> u.getRole() == Role.ROLE_PARENT).count();
+        long admins = allUsers.stream()
+                .filter(u -> u.getRole() == Role.ROLE_INSTITUTE_ADMIN || u.getRole() == Role.ROLE_SYSTEM_ADMIN).count();
+
+        Map<String, Object> userStats = new HashMap<>();
+        userStats.put("total", totalUsers);
+        userStats.put("students", students);
+        userStats.put("lecturers", lecturers);
+        userStats.put("parents", parents);
+        userStats.put("admins", admins);
+        reports.put("userStats", userStats);
+
+        // 3. Course Stats (by Status)
+        List<Course> allCourses = courseRepository.findAll();
+        long totalCourses = allCourses.size();
+        long approvedCourses = allCourses.stream()
+                .filter(c -> c.getStatus() == Course.CourseStatus.APPROVED).count();
+        long pendingCourses = allCourses.stream()
+                .filter(c -> c.getStatus() == Course.CourseStatus.PENDING_APPROVAL).count();
+        long rejectedCourses = allCourses.stream()
+                .filter(c -> c.getStatus() == Course.CourseStatus.REJECTED).count();
+        long draftCourses = allCourses.stream()
+                .filter(c -> c.getStatus() == Course.CourseStatus.DRAFT).count();
+
+        Map<String, Object> courseStats = new HashMap<>();
+        courseStats.put("total", totalCourses);
+        courseStats.put("approved", approvedCourses);
+        courseStats.put("pending", pendingCourses);
+        courseStats.put("rejected", rejectedCourses);
+        courseStats.put("draft", draftCourses);
+        reports.put("courseStats", courseStats);
+
+        // 4. Revenue Stats (Mock - Payments Table එකෙන් ගණනය කිරීමට හැක)
+        double totalRevenue = 2500000.0;
+        double basicRevenue = 500000.0;
+        double standardRevenue = 1000000.0;
+        double premiumRevenue = 1000000.0;
+
+        Map<String, Object> revenueStats = new HashMap<>();
+        revenueStats.put("total", totalRevenue);
+        revenueStats.put("basic", basicRevenue);
+        revenueStats.put("standard", standardRevenue);
+        revenueStats.put("premium", premiumRevenue);
+        reports.put("revenueStats", revenueStats);
+
+        // 5. Top Courses (Mock - වැඩිම Students සිටින Courses)
+        List<Map<String, Object>> topCourses = new ArrayList<>();
+        // ඔබට මෙය Real Query එකක් ලෙස වෙනස් කළ හැක
+        Map<String, Object> c1 = new HashMap<>();
+        c1.put("name", "Web Development");
+        c1.put("students", 30);
+        topCourses.add(c1);
+        Map<String, Object> c2 = new HashMap<>();
+        c2.put("name", "Java Programming");
+        c2.put("students", 25);
+        topCourses.add(c2);
+        Map<String, Object> c3 = new HashMap<>();
+        c3.put("name", "Database Systems");
+        c3.put("students", 20);
+        topCourses.add(c3);
+        reports.put("topCourses", topCourses);
+
+        // 6. Recent Registrations (Last 30 days)
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        long recentRegistrations = allUsers.stream()
+                .filter(u -> u.getCreatedAt() != null && u.getCreatedAt().isAfter(thirtyDaysAgo))
+                .count();
+        reports.put("recentRegistrations", recentRegistrations);
+
+        return reports;
+    }
+}

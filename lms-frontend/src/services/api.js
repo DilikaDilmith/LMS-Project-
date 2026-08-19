@@ -49,6 +49,7 @@ export const authAPI = {
 export const courseAPI = {
   create: (data) => api.post('/courses', data),
   getAll: () => api.get('/courses'),
+  getById: (courseId) => api.get(`/courses/${courseId}`),
   getApproved: () => api.get('/courses/approved'),
   getEnrolled: (studentId) => api.get(`/courses/enrolled/student/${studentId}`),
   submit: (courseId) => api.post(`/courses/${courseId}/submit`),
@@ -72,6 +73,9 @@ export const instituteAPI = {
   getById: (id) => api.get(`/institutes/${id}`),
   updateStatus: (id, status) => api.patch(`/institutes/${id}/status?status=${status}`),
   getPublic: () => api.get('/auth/institutes'),
+  getAllSubscriptions: () => api.get('/institutes/subscriptions'),
+  updateSubscription: (instituteId, plan) =>
+    api.put(`/institutes/${instituteId}/subscription?plan=${plan}`),
 };
 
 // ============================================
@@ -101,6 +105,13 @@ export const assignmentAPI = {
   getById: (assignmentId) => api.get(`/assignments/${assignmentId}`), // 👈 NEW
   submit: (assignmentId, studentId, data) => 
     api.post(`/assignments/${assignmentId}/submit/student/${studentId}`, data),
+  uploadSubmissionFile: (studentId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/assignments/upload/student/${studentId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   grade: (submissionId, lecturerId, data) => 
     api.post(`/assignments/submissions/${submissionId}/grade/lecturer/${lecturerId}`, data),
   getSubmissions: (assignmentId) => api.get(`/assignments/${assignmentId}/submissions`),
@@ -128,10 +139,12 @@ export const quizAPI = {
 export const progressAPI = {
   completeLesson: (lessonId, studentId) => 
     api.post(`/progress/lesson/${lessonId}/complete/student/${studentId}`),
+  getCompletedLessons: (studentId) =>
+    api.get(`/progress/student/${studentId}`),
   getStudentProgress: (studentId, courseId) => 
     api.get(`/progress/student/${studentId}/course/${courseId}`),
   getLessonStatus: (studentId, lessonId) => 
-    api.get(`/progress/student/${studentId}/lesson/${lessonId}`), // 👈 NEW
+    api.get(`/progress/student/${studentId}/lesson/${lessonId}`),
 };
 
 // ============================================
@@ -192,6 +205,7 @@ export const dashboardAPI = {
   getLecturer: (lecturerId) => api.get(`/dashboard/lecturer/${lecturerId}`),
   getInstitute: (instituteId) => api.get(`/dashboard/institute/${instituteId}`),
   getSystemAdmin: () => api.get('/dashboard/system-admin'),
+  getSystemReports: () => api.get('/dashboard/system-admin/reports'),
   getParent: (parentId) => api.get(`/dashboard/parent/${parentId}`),
 };
 

@@ -11,6 +11,8 @@ public class SubmissionResponse {
     private Long id;
     private Long assignmentId;
     private Long studentId;
+    private String studentName;
+    private String studentEmail;
     private String fileUrl;
     private AssignmentSubmission.SubmissionStatus status;
     private Integer marks;

@@ -56,7 +56,7 @@ const Announcements = () => {
   };
 
   const getRoleBadge = (role) => {
-    switch (role) {
+    switch (role.replace('ROLE_', '')) {
       case 'SYSTEM_ADMIN': return 'bg-purple-100 text-purple-700';
       case 'INSTITUTE_ADMIN': return 'bg-blue-100 text-blue-700';
       case 'LECTURER': return 'bg-green-100 text-green-700';
@@ -64,6 +64,13 @@ const Announcements = () => {
       default: return 'bg-gray-100 text-gray-700';
     }
   };
+
+  const filteredAnnouncements = announcements.filter((announcement) => {
+    if (filter === 'ALL') return true;
+    if (filter === 'GLOBAL') return announcement.targetRole === 'ALL';
+    if (filter === 'COURSE') return Boolean(announcement.courseId);
+    return announcement.targetRole === filter;
+  });
 
   if (loading) {
     return (
@@ -77,51 +84,96 @@ const Announcements = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Navbar */}
-      <nav className="bg-white shadow-sm border-b p-4 flex flex-wrap justify-between items-center">
-        <div className="flex items-center gap-3">
-          <Link to="/dashboard" className="text-gray-500 hover:text-gray-700 text-sm">← Dashboard</Link>
-          <h1 className="text-xl font-bold text-blue-600">📢 Announcements</h1>
+      <nav className="border-b border-slate-200 bg-white/90 px-4 py-4 shadow-sm backdrop-blur sm:px-8">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-600 text-xl shadow-sm shadow-sky-200">📢</div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-sky-600">Institute communication</p>
+              <h1 className="truncate text-lg font-bold text-slate-900 sm:text-xl">Announcements</h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="hidden text-sm text-slate-500 sm:inline">{announcements.length} updates</span>
+            {(role === 'ROLE_INSTITUTE_ADMIN' || role === 'ROLE_LECTURER') && (
+              <Link
+                to="/announcements/create"
+                className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-sky-700"
+              >
+                <span aria-hidden="true">+</span> New announcement
+              </Link>
+            )}
+          </div>
         </div>
-        {(role === 'ROLE_INSTITUTE_ADMIN' || role === 'ROLE_LECTURER') && (
-          <Link
-            to="/announcements/create"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
-          >
-            + New Announcement
-          </Link>
-        )}
       </nav>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {announcements.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center border border-gray-100">
-            <div className="text-5xl mb-4">📢</div>
-            <h3 className="text-lg font-semibold text-gray-700">No Announcements</h3>
-            <p className="text-gray-400 text-sm mt-1">There are no announcements at the moment.</p>
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-8 lg:py-10">
+        <div className="mb-8 rounded-2xl bg-slate-900 px-6 py-7 text-white shadow-lg sm:px-8">
+          <p className="text-sm font-semibold text-sky-300">Stay in the loop</p>
+          <div className="mt-2 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">What’s happening across your institute.</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">Important notices, course updates, and messages from your academic community in one clear feed.</p>
+            </div>
+            <div className="shrink-0 rounded-xl border border-white/10 bg-white/10 px-4 py-3">
+              <p className="text-xs text-slate-300">Visible updates</p>
+              <p className="mt-1 text-2xl font-bold">{filteredAnnouncements.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Latest notices</h2>
+            <p className="mt-1 text-sm text-slate-500">Sorted by most recent activity.</p>
+          </div>
+          <div className="flex max-w-full gap-2 overflow-x-auto pb-1">
+            {[
+              ['ALL', 'All'],
+              ['GLOBAL', 'Everyone'],
+              ['COURSE', 'Courses'],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => setFilter(value)}
+                className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition ${filter === value ? 'bg-sky-600 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-sky-50'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {filteredAnnouncements.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-50 text-4xl">📢</div>
+            <h3 className="mt-5 text-lg font-bold text-slate-800">No announcements found</h3>
+            <p className="mt-1 text-sm text-slate-400">There are no updates in this view right now.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {announcements.map((announcement) => (
+            {filteredAnnouncements.map((announcement) => (
               <div
                 key={announcement.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition"
+                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md sm:p-6"
               >
-                <div className="flex flex-wrap justify-between items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-lg font-bold text-gray-800">{announcement.title}</h3>
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                <div className="flex items-start gap-4">
+                  <div className="hidden h-11 w-1 shrink-0 rounded-full bg-sky-500 sm:block" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-lg font-bold text-slate-900">{announcement.title}</h3>
+                      <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-700">
                         {getTargetLabel(announcement)}
                       </span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getRoleBadge(announcement.createdByRole || '')}`}>
-                        {announcement.createdByRole || 'Admin'}
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getRoleBadge(announcement.createdByRole || '')}`}>
+                        {(announcement.createdByRole || 'Admin').replace('ROLE_', '').replace('_', ' ')}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">{announcement.message}</p>
-                    <p className="text-xs text-gray-400 mt-3">
-                      📅 {new Date(announcement.createdAt).toLocaleDateString()} at {new Date(announcement.createdAt).toLocaleTimeString()}
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">{announcement.message}</p>
+                    <p className="mt-4 text-xs font-medium text-slate-400">
+                      <span aria-hidden="true">◷</span> {new Date(announcement.createdAt).toLocaleDateString()} at {new Date(announcement.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 </div>
@@ -129,7 +181,7 @@ const Announcements = () => {
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

@@ -7,11 +7,20 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 
 import java.util.List;
 
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
+
+  @Override
+  public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    java.nio.file.Path uploadPath = java.nio.file.Paths.get("uploads").toAbsolutePath();
+    String uploadLocation = "file:///" + uploadPath.toString().replace('\\', '/') + "/";
+    registry.addResourceHandler("/uploads/**")
+        .addResourceLocations("file:uploads/", "file:./uploads/", uploadLocation);
+  }
 
   @Override
   public void addCorsMappings(CorsRegistry registry) {

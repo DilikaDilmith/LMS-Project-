@@ -100,7 +100,7 @@ const LecturerGrading = () => {
 
   const handleGradeSubmit = async (submissionId) => {
     const data = gradeData[submissionId];
-    if (!data?.marks) {
+    if (data?.marks === undefined || data?.marks === '') {
       toast.error('Please enter marks');
       return;
     }
@@ -137,24 +137,33 @@ const LecturerGrading = () => {
   const pendingSubmissions = submissions.filter(s => s.status === 'SUBMITTED' || s.status === 'LATE');
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b p-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-blue-600">✅ Grade Submissions</h1>
-        <Link to="/dashboard" className="text-blue-600 hover:underline text-sm">← Back</Link>
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <nav className="border-b border-slate-200 bg-white/90 px-4 py-4 shadow-sm backdrop-blur sm:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-xl shadow-sm shadow-emerald-200">✅</div>
+            <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wider text-emerald-600">Teaching workspace</p><h1 className="truncate text-lg font-bold text-slate-900 sm:text-xl">Grade submissions</h1></div>
+          </div>
+          <Link to="/dashboard" className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"><span aria-hidden="true">←</span> Dashboard</Link>
+        </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-8 lg:py-10">
+        <div className="mb-8 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+          <div className="max-w-2xl"><p className="mb-2 text-sm font-semibold text-emerald-600">Assessment centre</p><h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Give every submission useful feedback.</h2><p className="mt-2 text-sm leading-6 text-slate-500 sm:text-base">Review student work, open submitted files, and record marks that students can see immediately.</p></div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3"><div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center"><p className="text-xs text-amber-700">To review</p><p className="mt-1 text-2xl font-bold text-amber-900">{pendingSubmissions.length}</p></div><div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center"><p className="text-xs text-emerald-700">Graded</p><p className="mt-1 text-2xl font-bold text-emerald-900">{submissions.filter(s => s.status === 'GRADED').length}</p></div></div>
+        </div>
         {/* Course Selector */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+        <section className="mb-8 flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:p-6">
           <div className="flex flex-wrap items-center gap-4">
-            <label className="font-medium text-gray-700 text-sm">Select Course:</label>
+            <div><p className="text-xs font-semibold uppercase tracking-wider text-emerald-600">Course context</p><h3 className="mt-1 text-lg font-bold text-slate-900">Select a course to review</h3></div>
             {courses.length === 0 ? (
               <p className="text-sm text-gray-500">You don't have any courses yet.</p>
             ) : (
               <select
                 value={selectedCourse}
                 onChange={(e) => setSelectedCourse(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
               >
                 {courses.map((course) => (
                   <option key={course.id} value={course.id}>
@@ -167,70 +176,72 @@ const LecturerGrading = () => {
               {pendingSubmissions.length} pending submissions
             </span>
           </div>
-        </div>
+        </section>
 
         {/* Submissions List */}
-        {pendingSubmissions.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-10 text-center border border-gray-100">
-            <div className="text-4xl mb-3">🎉</div>
-            <h3 className="text-lg font-semibold text-gray-700">No pending submissions</h3>
-            <p className="text-gray-500 text-sm mt-1">All assignments have been graded.</p>
+        {submissions.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-4xl">🎉</div><h3 className="mt-5 text-lg font-bold text-slate-800">No submissions yet</h3><p className="mt-1 text-sm text-slate-500">Student submissions for this course will appear here.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {pendingSubmissions.map((sub) => {
+            {submissions.map((sub) => {
               const assign = assignmentsMap[sub.assignmentId];
               return (
-                <div key={sub.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                  <div className="flex flex-wrap justify-between items-start gap-4">
+                <article key={sub.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-emerald-200 hover:shadow-md sm:p-6">
+                  <div className="flex flex-col justify-between gap-5 lg:flex-row">
                     <div>
-                      <h4 className="font-semibold text-gray-800">Student #{sub.studentId}</h4>
-                      <p className="text-sm text-gray-500 font-medium">
+                      <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700">Student #{sub.studentId}</span><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${sub.status === 'GRADED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{sub.status}</span></div>
+                      <h4 className="mt-3 text-lg font-bold text-slate-900">{sub.studentName || `Student #${sub.studentId}`}</h4>
+                      <p className="text-sm text-slate-500">{sub.studentEmail || 'Email unavailable'}</p>
+                      <p className="mt-3 text-sm font-semibold text-slate-700">
                         {assign?.title ? assign.title : `Assignment #${sub.assignmentId}`}
                         {assign?.maxMarks ? ` (Max Marks: ${assign.maxMarks})` : ''}
                       </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="mt-1 text-xs text-slate-400">
                         Submitted: {new Date(sub.submittedAt).toLocaleDateString()} {new Date(sub.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                       <a
                         href={sub.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-block mt-2 text-xs text-blue-600 hover:underline font-medium"
+                        className="mt-3 inline-block rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100"
                       >
                         📎 View Submission File
                       </a>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3 lg:max-w-xl lg:justify-end">
+                      {sub.status === 'GRADED' && <span className="text-xl font-bold text-emerald-700">{sub.marks} / {assign?.maxMarks || 100}</span>}
                       <div className="w-28">
                         <input
                           type="number"
-                          placeholder={assign?.maxMarks ? `Score / ${assign.maxMarks}` : "Marks"}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          defaultValue={sub.marks ?? ''}
+                          placeholder={assign?.maxMarks ? `Score / ${assign.maxMarks}` : 'Marks'}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                           onChange={(e) => handleGradeChange(sub.id, 'marks', e.target.value)}
                         />
                       </div>
                       <input
                         type="text"
                         placeholder="Feedback (optional)"
-                        className="flex-1 min-w-[150px] px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        defaultValue={sub.feedback || ''}
+                        className="min-w-50 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                         onChange={(e) => handleGradeChange(sub.id, 'feedback', e.target.value)}
                       />
                       <button
                         onClick={() => handleGradeSubmit(sub.id)}
                         disabled={grading === sub.id}
-                        className={`px-4 py-1.5 rounded-lg text-white text-sm font-medium transition-all ${grading === sub.id ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
+                        className={`rounded-lg px-4 py-2 text-sm font-bold text-white transition-all ${grading === sub.id ? 'bg-slate-400' : 'bg-emerald-600 hover:bg-emerald-700'}`}
                       >
-                        {grading === sub.id ? 'Saving...' : 'Grade ✅'}
+                        {grading === sub.id ? 'Saving...' : sub.status === 'GRADED' ? 'Update grade' : 'Save grade'}
                       </button>
                     </div>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };
