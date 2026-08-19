@@ -4,12 +4,14 @@ import com.lms.lms_backend.annotation.Auditable;
 import com.lms.lms_backend.dto.InstituteRequest;
 import com.lms.lms_backend.dto.InstituteResponse;
 import com.lms.lms_backend.model.Institute;
+import com.lms.lms_backend.repository.InstituteRepository;
 import com.lms.lms_backend.service.InstituteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/institutes")
@@ -17,6 +19,17 @@ public class InstituteController {
 
     @Autowired
     private InstituteService instituteService;
+
+    @Autowired
+    private com.lms.lms_backend.repository.InstituteRepository instituteRepository;
+
+    // PUBLIC endpoint — used on the Register page to list active institutes (no auth required)
+    @GetMapping("/public")
+    public List<InstituteResponse> getPublicInstitutes() {
+        return instituteService.getAllInstitutes().stream()
+                .filter(i -> i.getStatus() == Institute.InstituteStatus.ACTIVE)
+                .collect(Collectors.toList());
+    }
 
     @PostMapping
     @PreAuthorize("hasRole('SYSTEM_ADMIN')")

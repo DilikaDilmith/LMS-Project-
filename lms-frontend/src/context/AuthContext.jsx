@@ -25,37 +25,44 @@ export const AuthProvider = ({ children }) => {
   const [loading] = useState(false);
 
   const login = async (username, password) => {
-  try {
-    const response = await authAPI.login({ username, password });
-    const { token, userId, username: userName, role, instituteId } = response.data; // 👈 instituteId Extract කරන්න
-    
-    const userData = { 
-      id: userId, 
-      username: userName, 
-      role: role,
-      instituteId: instituteId   // 👈 Store කරන්න
-    };
-    
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
-    
-    toast.success('Login successful!');
-    return true;
-  } catch (error) {
-    toast.error(error.response?.data?.message || 'Login failed!');
-    return false;
-  }
-};
+    try {
+      const response = await authAPI.login({ username, password });
+      const { token, userId, username: userName, role, instituteId } = response.data;
+      
+      const userData = { 
+        id: userId, 
+        username: userName, 
+        role: role,
+        instituteId: instituteId
+      };
+      
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      
+      toast.success('Login successful! 🎉');
+      return { success: true };
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response.data : 'Login failed!');
+      toast.error(errorMsg);
+      return { success: false, error: errorMsg };
+    }
+  };
 
   const register = async (userData) => {
     try {
-      await authAPI.register(userData);
-      toast.success('Registration successful! Please login.');
+      const response = await authAPI.register(userData);
+      const responseText = response.data;
+      // Backend returns a plain string — check if it's an error
+      if (typeof responseText === 'string' && responseText.startsWith('Error:')) {
+        toast.error(responseText.replace('Error: ', ''));
+        return false;
+      }
+      toast.success('Registration submitted! Awaiting Institute Admin approval. ⏳');
       return true;
     } catch (error) {
-      const errorMsg = error.response?.data || 'Registration failed! Please try again.';
-      toast.error(errorMsg);
+      const errorMsg = error.response?.data?.error || error.response?.data || 'Registration failed! Please try again.';
+      toast.error(typeof errorMsg === 'string' ? errorMsg : 'Registration failed!');
       return false;
     }
   };

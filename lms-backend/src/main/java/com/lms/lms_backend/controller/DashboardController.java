@@ -178,26 +178,36 @@ public class DashboardController {
     @GetMapping({"/institute", "/institute/{instituteId}"})
     @PreAuthorize("isAuthenticated()")
     public Map<String, Object> getInstituteDashboard(@PathVariable(required = false) Long instituteId) {
-        if (instituteId == null || instituteId == 0) {
-            instituteId = TenantContext.getInstituteId();
+        Long resolvedId = instituteId;
+        if (resolvedId == null || resolvedId == 0) {
+            resolvedId = TenantContext.getInstituteId();
         }
-        if (instituteId == null || instituteId == 0) {
-            instituteId = 1L;
+        if (resolvedId == null || resolvedId == 0) {
+            resolvedId = 1L;
         }
+        final Long targetInstituteId = resolvedId;
 
         Map<String, Object> data = new HashMap<>();
 
-        List<User> students = userRepository.findByInstituteIdAndRole(instituteId, Role.ROLE_STUDENT);
-        List<User> lecturers = userRepository.findByInstituteIdAndRole(instituteId, Role.ROLE_LECTURER);
-        List<Course> courses = courseRepository.findByInstituteId(instituteId);
-        List<Course> pending = courseRepository.findByInstituteIdAndStatus(instituteId, Course.CourseStatus.PENDING_APPROVAL);
-        List<Course> draft = courseRepository.findByInstituteIdAndStatus(instituteId, Course.CourseStatus.DRAFT);
+        List<User> students = userRepository.findByInstituteIdAndRole(targetInstituteId, Role.ROLE_STUDENT);
+        List<User> lecturers = userRepository.findByInstituteIdAndRole(targetInstituteId, Role.ROLE_LECTURER);
+        List<Course> courses = courseRepository.findByInstituteId(targetInstituteId);
+        List<Course> pendingCourses = courseRepository.findByInstituteIdAndStatus(targetInstituteId, Course.CourseStatus.PENDING_APPROVAL);
+        List<Course> draftCourses = courseRepository.findByInstituteIdAndStatus(targetInstituteId, Course.CourseStatus.DRAFT);
 
-        int totalPending = (pending != null ? pending.size() : 0) + (draft != null ? draft.size() : 0);
+        long pendingUsersCount = userRepository.findAll().stream()
+                .filter(u -> u != null && "PENDING".equalsIgnoreCase(u.getStatus()) &&
+                        (targetInstituteId.equals(u.getInstituteId()) || u.getInstituteId() == null))
+                .count();
+
+        int totalPending = (pendingCourses != null ? pendingCourses.size() : 0) + 
+                           (draftCourses != null ? draftCourses.size() : 0) + 
+                           (int) pendingUsersCount;
 
         data.put("totalStudents", students != null ? students.size() : 0);
         data.put("totalLecturers", lecturers != null ? lecturers.size() : 0);
         data.put("totalCourses", courses != null ? courses.size() : 0);
+        data.put("pendingUsers", pendingUsersCount);
         data.put("pendingApprovals", totalPending);
 
         return data;

@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
-@Data          // Getter/Setter toString ඔක්කොම හදලා දෙනවා
-@NoArgsConstructor   // Empty Constructor එක
-@AllArgsConstructor  // All arguments Constructor එක
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     @Id
@@ -27,7 +27,7 @@ public class User {
     private String email;
 
     @Column(nullable = false)
-    private String password; // Hash කරලා තමයි save කරන්නේ
+    private String password;
 
     @Column(nullable = false)
     private String firstName;
@@ -40,9 +40,8 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
-    private String status = "ACTIVE"; // ACTIVE, INACTIVE, SUSPENDED
+    private String status = "PENDING";
 
-    // Multi-tenancy එකට (System Adminට NULL වෙන්න පුළුවන්)
     private Long instituteId;
 
     @CreationTimestamp
@@ -50,4 +49,14 @@ public class User {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    private void ensureStatus() {
+        if (status == null || status.isBlank()) {
+            status = "PENDING";
+        } else {
+            status = status.toUpperCase();
+        }
+    }
 }

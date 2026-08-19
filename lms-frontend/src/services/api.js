@@ -71,6 +71,7 @@ export const instituteAPI = {
   getAll: () => api.get('/institutes'),
   getById: (id) => api.get(`/institutes/${id}`),
   updateStatus: (id, status) => api.patch(`/institutes/${id}/status?status=${status}`),
+  getPublic: () => api.get('/auth/institutes'),
 };
 
 // ============================================
@@ -217,6 +218,11 @@ export const userAPI = {
   },
   getAllStudents: () => api.get('/users/students'),
   getLecturers: (instituteId) => api.get(`/users/institute/${instituteId}/lecturers`),
+  approveUser: (userId) => api.put(`/users/${userId}/approve`),
+  rejectUser: (userId) => api.put(`/users/${userId}/reject`),
+  updateUserStatus: (userId, status) => api.put(`/users/${userId}/status?status=${status}`),
+  getPendingUsers: () => api.get('/users/pending'),
+  getPendingUsersByInstitute: (instituteId) => api.get(`/users/institute/${instituteId}/pending`),
 };
 
 // ============================================

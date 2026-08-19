@@ -27,6 +27,39 @@ const AdminStudents = () => {
     }
   };
 
+  const handleApprove = async (userId) => {
+    try {
+      await userAPI.approveUser(userId);
+      toast.success('Student approved successfully! 🎉');
+      fetchStudents();
+    } catch (error) {
+      console.error('Failed to approve student:', error);
+      toast.error(error.response?.data || 'Failed to approve student');
+    }
+  };
+
+  const handleReject = async (userId) => {
+    try {
+      await userAPI.rejectUser(userId);
+      toast.success('Student registration rejected ❌');
+      fetchStudents();
+    } catch (error) {
+      console.error('Failed to reject student:', error);
+      toast.error(error.response?.data || 'Failed to reject student');
+    }
+  };
+
+  const handleStatusChange = async (userId, newStatus) => {
+    try {
+      await userAPI.updateUserStatus(userId, newStatus);
+      toast.success(`Student status updated to ${newStatus}`);
+      fetchStudents();
+    } catch (error) {
+      console.error('Failed to update student status:', error);
+      toast.error('Failed to update student status');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -34,6 +67,8 @@ const AdminStudents = () => {
       </div>
     );
   }
+
+  const pendingStudents = students.filter(s => s.status === 'PENDING');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -44,8 +79,13 @@ const AdminStudents = () => {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Stats */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
           <p className="text-sm text-gray-500">Total Students: <span className="font-bold text-gray-800">{students.length}</span></p>
+          {pendingStudents.length > 0 && (
+            <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-full border border-amber-200">
+              ⚠️ {pendingStudents.length} Pending Approval{pendingStudents.length > 1 ? 's' : ''}
+            </span>
+          )}
         </div>
 
         {/* Table */}
@@ -75,14 +115,38 @@ const AdminStudents = () => {
                       <td className="px-6 py-3 text-gray-600">{student.email}</td>
                       <td className="px-6 py-3 text-gray-600">{student.phone || '-'}</td>
                       <td className="px-6 py-3">
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${student.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {student.status}
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                          student.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
+                          student.status === 'PENDING' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {student.status || 'ACTIVE'}
                         </span>
                       </td>
                       <td className="px-6 py-3">
-                        <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">View</button>
-                        <span className="text-gray-300 mx-2">|</span>
-                        <button className="text-red-600 hover:text-red-800 text-sm font-medium">Deactivate</button>
+                        {student.status === 'PENDING' ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleApprove(student.id)}
+                              className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition active:scale-95"
+                            >
+                              Approve ✅
+                            </button>
+                            <button
+                              onClick={() => handleReject(student.id)}
+                              className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition active:scale-95"
+                            >
+                              Reject ❌
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleStatusChange(student.id, student.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
+                            className={`text-xs font-medium ${student.status === 'ACTIVE' ? 'text-red-600 hover:underline' : 'text-green-600 hover:underline'}`}
+                          >
+                            {student.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
