@@ -37,6 +37,9 @@ public class QuizService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
+
     // 👇 Notification Service Inject කරන්න
     @Autowired
     private NotificationService notificationService;
@@ -124,6 +127,22 @@ public class QuizService {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new RuntimeException("Quiz not found!"));
 
+        // Check if student is enrolled; if not, ensure active enrollment is recorded
+        boolean isEnrolled = enrollmentRepository.findByStudentIdAndCourseId(studentId, quiz.getCourseId())
+                .map(enrollment -> enrollment.getStatus() != Enrollment.EnrollmentStatus.DROPPED)
+                .orElse(false);
+        if (!isEnrolled) {
+            Course course = courseRepository.findById(quiz.getCourseId()).orElse(null);
+            if (course != null) {
+                Enrollment enrollment = new Enrollment();
+                enrollment.setStudentId(studentId);
+                enrollment.setCourseId(course.getId());
+                enrollment.setInstituteId(course.getInstituteId() != null ? course.getInstituteId() : 1L);
+                enrollment.setStatus(Enrollment.EnrollmentStatus.ACTIVE);
+                enrollmentRepository.save(enrollment);
+            }
+        }
+
         QuizAttempt attempt = new QuizAttempt();
         attempt.setQuizId(quizId);
         attempt.setStudentId(studentId);
@@ -179,12 +198,13 @@ public class QuizService {
 
         savedAttempt.setScore(scoredMarks);
         savedAttempt.setEndTime(LocalDateTime.now());
+        savedAttempt.setAttemptedAt(LocalDateTime.now());
         savedAttempt.setIsPassed(scoredMarks >= (totalMarks * quiz.getPassingScore() / 100));
         savedAttempt.setStatus(QuizAttempt.AttemptStatus.COMPLETED);
 
         QuizAttempt updatedAttempt = attemptRepository.save(savedAttempt);
 
-        // 👇 **NEW: Notification එක Send කරනවා (Student ට)**
+        // 👇 **Notification එක Send කරනවා (Student ට)**
         try {
             String title = "Quiz Result: " + quiz.getTitle();
             String message = "You scored " + scoredMarks + "/" + totalMarks + " in '" + quiz.getTitle() + "'.\n" +
@@ -210,8 +230,21 @@ public class QuizService {
         );
     }
 
-    public List<QuizAttempt> getStudentQuizResults(Long studentId) {
-        return attemptRepository.findByStudentId(studentId);
+    @Transactional(readOnly = true)
+    public List<QuizAttemptResponse> getStudentQuizResults(Long studentId) {
+        return attemptRepository.findByStudentId(studentId).stream()
+                .map(attempt -> new QuizAttemptResponse(
+                        attempt.getId(),
+                        attempt.getQuizId(),
+                        attempt.getStudentId(),
+                        attempt.getScore(),
+                        attempt.getIsPassed(),
+                        attempt.getStartTime(),
+                        attempt.getEndTime(),
+                        attempt.getAttemptedAt() != null ? attempt.getAttemptedAt() : (attempt.getEndTime() != null ? attempt.getEndTime() : attempt.getStartTime()),
+                        attempt.getStatus()
+                ))
+                .collect(Collectors.toList());
     }
 
     // Get all student attempts for a specific quiz (for Lecturer)

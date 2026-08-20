@@ -260,10 +260,17 @@ const CourseDetails = () => {
 
       // 6. Fetch Quizzes & Student Attempts (Ensure array)
       try {
+        const effectiveStudentId = studentId || user?.id || (() => {
+          try {
+            const stored = localStorage.getItem('user');
+            return stored ? JSON.parse(stored)?.id : null;
+          } catch { return null; }
+        })();
+
         const [quizzesRes, quizAttemptsRes] = await Promise.all([
           quizAPI.getByCourse(courseId),
-          studentId && !isLecturer && !isAdmin
-            ? quizAPI.getStudentResults(studentId).catch(() => ({ data: [] }))
+          effectiveStudentId && !isLecturer && !isAdmin
+            ? quizAPI.getStudentResults(effectiveStudentId).catch(() => ({ data: [] }))
             : Promise.resolve({ data: [] }),
         ]);
 
@@ -271,14 +278,18 @@ const CourseDetails = () => {
         const attemptsList = Array.isArray(quizAttemptsRes?.data) ? quizAttemptsRes.data : [];
 
         const mappedQuizzes = qList.map((q) => {
-          const attempt = attemptsList.find((a) => String(a.quizId) === String(q.id));
+          const matchingAttempts = attemptsList
+            .filter((a) => String(a.quizId) === String(q.id))
+            .sort((a, b) => new Date(b.endTime || b.attemptedAt || b.startTime || 0) - new Date(a.endTime || a.attemptedAt || a.startTime || 0));
+          const attempt = matchingAttempts[0] || null;
+
           return {
             ...q,
-            attempt: attempt || null,
+            attempt: attempt,
             isCompleted: !!attempt,
             score: attempt ? attempt.score : null,
-            isPassed: attempt ? attempt.isPassed : null,
-            attemptedAt: attempt ? (attempt.attemptedAt || attempt.endTime) : null,
+            isPassed: attempt ? (attempt.isPassed ?? attempt.passed) : null,
+            attemptedAt: attempt ? (attempt.attemptedAt || attempt.endTime || attempt.startTime) : null,
           };
         });
 

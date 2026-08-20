@@ -74,7 +74,7 @@ public class QuizController {
 
     @GetMapping("/student/{studentId}")
     @PreAuthorize("hasRole('STUDENT') or hasRole('INSTITUTE_ADMIN') or hasRole('LECTURER') or hasRole('SYSTEM_ADMIN') or hasRole('PARENT')")
-    public List<QuizAttempt> getStudentResults(@PathVariable Long studentId) {
+    public List<QuizAttemptResponse> getStudentResults(@PathVariable Long studentId) {
         return quizService.getStudentQuizResults(studentId);
     }
 

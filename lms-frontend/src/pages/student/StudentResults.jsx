@@ -25,13 +25,25 @@ const StudentResults = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
 
+  const effectiveStudentId =
+    studentId ||
+    user?.id ||
+    (() => {
+      try {
+        const stored = localStorage.getItem('user');
+        return stored ? JSON.parse(stored)?.id : null;
+      } catch {
+        return null;
+      }
+    })();
+
   useEffect(() => {
-    if (studentId) {
+    if (effectiveStudentId) {
       fetchResults();
     } else {
       setLoading(false);
     }
-  }, [studentId]);
+  }, [effectiveStudentId]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'Recently';
@@ -66,15 +78,15 @@ const StudentResults = () => {
     try {
       // 1. Fetch Student Quiz Attempts, Submissions & Enrolled Courses
       const [quizAttemptsRes, submissionsRes, enrolledRes] = await Promise.all([
-        quizAPI.getStudentResults(studentId).catch((err) => {
+        quizAPI.getStudentResults(effectiveStudentId).catch((err) => {
           console.warn('Failed to load student quiz results:', err);
           return { data: [] };
         }),
-        assignmentAPI.getStudentSubmissions(studentId).catch((err) => {
+        assignmentAPI.getStudentSubmissions(effectiveStudentId).catch((err) => {
           console.warn('Failed to load student assignments:', err);
           return { data: [] };
         }),
-        courseAPI.getEnrolled(studentId).catch((err) => {
+        courseAPI.getEnrolled(effectiveStudentId).catch((err) => {
           console.warn('Failed to load student courses:', err);
           return { data: [] };
         }),
@@ -94,7 +106,6 @@ const StudentResults = () => {
         const name = c.courseName ?? c.name ?? c.title ?? `Course #${id}`;
         if (id) cMap[String(id)] = name;
       });
-      setCoursesMap(cMap);
 
       // 2. Fetch Quizzes and Assignments for all enrolled courses to enrich titles and total marks
       const courseIds = rawCourses.map((c) => c.courseId ?? c.id).filter(Boolean);
@@ -133,6 +144,45 @@ const StudentResults = () => {
         );
       }
 
+      // Also enrich any attempt quiz that wasn't in qMap yet
+      const missingQuizIds = [...new Set(
+        rawAttempts
+          .map((a) => a.quizId)
+          .filter((qid) => qid && !qMap[String(qid)])
+      )];
+
+      if (missingQuizIds.length > 0) {
+        await Promise.all(
+          missingQuizIds.map(async (qid) => {
+            try {
+              const res = await quizAPI.getById(qid);
+              if (res.data) {
+                const q = res.data;
+                const cid = q.courseId;
+                let cName = cid ? cMap[String(cid)] : null;
+                if (!cName && cid) {
+                  try {
+                    const cRes = await courseAPI.getById(cid);
+                    cName = cRes.data?.name || cRes.data?.title || `Course #${cid}`;
+                    cMap[String(cid)] = cName;
+                  } catch {}
+                }
+                qMap[String(q.id)] = {
+                  title: q.title || `Quiz #${q.id}`,
+                  passingScore: q.passingScore || 50,
+                  durationMinutes: q.durationMinutes || 30,
+                  courseId: cid,
+                  courseName: cName || (cid ? `Course #${cid}` : 'Enrolled Course'),
+                };
+              }
+            } catch (err) {
+              console.warn(`Failed to fetch quiz ${qid}:`, err);
+            }
+          })
+        );
+      }
+
+      setCoursesMap(cMap);
       setQuizzesMap(qMap);
       setAssignmentsMap(aMap);
     } catch (error) {
@@ -148,7 +198,10 @@ const StudentResults = () => {
   const safeSubmissions = Array.isArray(submissions) ? submissions : [];
 
   // Metrics
-  const passedQuizzes = safeAttempts.filter((q) => q?.isPassed ?? q?.passed);
+  const passedQuizzes = safeAttempts.filter((q) => {
+    const qInfo = quizzesMap[String(q?.quizId)];
+    return q?.isPassed ?? q?.passed ?? ((q?.score ?? 0) >= (qInfo?.passingScore || 50));
+  });
   const gradedSubmissions = safeSubmissions.filter((s) => s?.status === 'GRADED');
   
   const totalQuizScore = safeAttempts.reduce((sum, a) => sum + (a.score || 0), 0);
@@ -168,16 +221,19 @@ const StudentResults = () => {
   const filteredAttempts = useMemo(() => {
     return safeAttempts.filter((a) => {
       const qInfo = quizzesMap[String(a.quizId)];
-      const title = (qInfo?.title || '').toLowerCase();
+      const title = (qInfo?.title || `Quiz #${a.quizId}`).toLowerCase();
       const courseName = (qInfo?.courseName || '').toLowerCase();
       const query = searchQuery.toLowerCase();
 
       // Course filter
-      if (filterCourse !== 'ALL' && String(qInfo?.courseId) !== String(filterCourse)) {
-        return false;
+      if (filterCourse !== 'ALL') {
+        const attemptCourseId = qInfo?.courseId;
+        if (attemptCourseId && String(attemptCourseId) !== String(filterCourse)) {
+          return false;
+        }
       }
       // Status filter
-      const isPassed = a?.isPassed ?? a?.passed;
+      const isPassed = a?.isPassed ?? a?.passed ?? ((a?.score ?? 0) >= (qInfo?.passingScore || 50));
       if (filterStatus === 'PASSED' && !isPassed) return false;
       if (filterStatus === 'FAILED' && isPassed) return false;
 
@@ -328,12 +384,15 @@ const StudentResults = () => {
         {/* 📊 EXECUTIVE METRIC CARDS */}
         {/* ========================================================================= */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {/* Card 1: Quizzes Passed */}
-          <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-xs hover:shadow-md transition flex flex-col justify-between">
+          {/* Card 1: Quizzes Passed — clickable, jumps to filtered quiz list */}
+          <button
+            onClick={() => { setActiveTab('quizzes'); setFilterStatus('PASSED'); }}
+            className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-xs hover:shadow-md hover:border-emerald-300 transition flex flex-col justify-between text-left w-full cursor-pointer group"
+          >
             <div>
               <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
                 <span>Quizzes Passed</span>
-                <span className="text-base">🏆</span>
+                <span className="text-base group-hover:scale-110 transition-transform inline-block">🏆</span>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-emerald-600 mt-2">
                 {passedQuizzes.length} <span className="text-xs text-slate-400 font-bold">/ {safeAttempts.length}</span>
@@ -350,8 +409,9 @@ const StudentResults = () => {
                 <span>Pass Rate</span>
                 <span className="text-emerald-700 font-extrabold">{passRate}%</span>
               </div>
+              <p className="text-[10px] text-emerald-600 font-bold mt-1.5 group-hover:underline">View passed quizzes →</p>
             </div>
-          </div>
+          </button>
 
           {/* Card 2: Average Score */}
           <div className="bg-white p-5 rounded-3xl border border-indigo-100 shadow-xs hover:shadow-md transition flex flex-col justify-between">
@@ -416,6 +476,116 @@ const StudentResults = () => {
             </div>
           </div>
         </div>
+
+        {/* ========================================================================= */}
+        {/* ✅ QUIZZES PASSED — live list from backend */}
+        {/* ========================================================================= */}
+        {safeAttempts.length > 0 && (
+          <div className="bg-white rounded-3xl border border-emerald-100 shadow-sm mb-6 overflow-hidden">
+            {/* Section header */}
+            <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-base">🏆</div>
+                <div>
+                  <h3 className="text-sm font-black text-emerald-900 leading-tight">Quizzes Passed</h3>
+                  <p className="text-[11px] text-emerald-600 font-medium">
+                    {passedQuizzes.length} of {safeAttempts.length} quiz{safeAttempts.length !== 1 ? 'zes' : ''} passed · {passRate}% pass rate
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setActiveTab('quizzes'); setFilterStatus('PASSED'); }}
+                className="text-[11px] font-extrabold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-xl transition border border-emerald-200"
+              >
+                View All →
+              </button>
+            </div>
+
+            {passedQuizzes.length === 0 ? (
+              /* No quizzes passed yet */
+              <div className="px-5 py-10 text-center">
+                <div className="text-3xl mb-2">📝</div>
+                <p className="text-sm font-bold text-slate-700">No quizzes passed yet</p>
+                <p className="text-xs text-slate-400 mt-1">Attempt quizzes in your enrolled courses to see your results here.</p>
+                <Link
+                  to="/student/quizzes"
+                  className="mt-4 inline-block text-xs font-extrabold text-indigo-600 hover:text-indigo-800 underline"
+                >
+                  Go to My Quizzes →
+                </Link>
+              </div>
+            ) : (
+              /* List of passed quizzes */
+              <div className="divide-y divide-slate-50">
+                {passedQuizzes.map((attempt) => {
+                  const quizInfo = quizzesMap[String(attempt.quizId)];
+                  const title = quizInfo?.title || `Quiz #${attempt.quizId}`;
+                  const courseName =
+                    quizInfo?.courseName ||
+                    (quizInfo?.courseId ? coursesMap[String(quizInfo.courseId)] : null) ||
+                    'Enrolled Course';
+                  const score = attempt.score ?? 0;
+                  const passingScore = quizInfo?.passingScore || 50;
+                  const grade = getGradeInfo(score, 100);
+                  const attemptDate = attempt.attemptedAt || attempt.endTime || attempt.startTime;
+                  const barWidth = Math.min(score, 100);
+
+                  return (
+                    <div
+                      key={attempt.id || attempt.quizId}
+                      className="px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-emerald-50/30 transition"
+                    >
+                      {/* Left: icon + title + meta */}
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm shrink-0 mt-0.5 font-black">
+                          ✅
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-extrabold text-slate-900 leading-snug truncate">{title}</p>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <span className="text-[11px] text-slate-500 font-medium">📚 {courseName}</span>
+                            <span className="text-slate-200 text-[10px]">·</span>
+                            <span className="text-[11px] text-slate-400 font-medium">{formatDate(attemptDate)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Center: score progress bar */}
+                      <div className="hidden md:block w-40 shrink-0">
+                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-700"
+                            style={{ width: `${barWidth}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-1">
+                          <span>{score} pts scored</span>
+                          <span>Pass: {passingScore}%</span>
+                        </div>
+                      </div>
+
+                      {/* Right: grade + score badge + review button */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`px-2 py-0.5 rounded-lg font-black text-xs border ${grade.bg}`}>
+                          {grade.letter}
+                        </span>
+                        <span className="text-xs font-extrabold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                          {score} pts
+                        </span>
+                        <button
+                          onClick={() => navigate(`/student/quiz/${attempt.quizId}`)}
+                          className="text-[11px] font-extrabold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl transition active:scale-95"
+                        >
+                          Review 🔍
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ========================================================================= */}
         {/* 🎛️ CONTROLS & FILTER BAR */}

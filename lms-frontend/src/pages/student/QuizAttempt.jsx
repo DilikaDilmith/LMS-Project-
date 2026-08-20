@@ -30,6 +30,9 @@ const QuizAttempt = () => {
   // Quiz Result State after submission
   const [quizResult, setQuizResult] = useState(null);
 
+  // Auto-redirect countdown after fresh submission
+  const [redirectCountdown, setRedirectCountdown] = useState(null);
+
   // Get effective student ID synchronously with localStorage fallback
   const effectiveStudentId =
     studentId ||
@@ -49,7 +52,7 @@ const QuizAttempt = () => {
     }
   }, [quizId, studentId, user]);
 
-  // Countdown timer effect
+  // Countdown timer effect (quiz timer)
   useEffect(() => {
     if (timeLeftSeconds === null || timeLeftSeconds <= 0 || quizResult) return;
 
@@ -66,6 +69,19 @@ const QuizAttempt = () => {
 
     return () => clearInterval(timer);
   }, [timeLeftSeconds, quizResult]);
+
+  // Auto-redirect countdown after submission
+  useEffect(() => {
+    if (redirectCountdown === null) return;
+    if (redirectCountdown <= 0) {
+      navigate('/student/results');
+      return;
+    }
+    const timer = setTimeout(() => {
+      setRedirectCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [redirectCountdown, navigate]);
 
   const loadQuiz = async () => {
     setLoading(true);
@@ -171,6 +187,8 @@ const QuizAttempt = () => {
       const resultData = res.data;
       setQuizResult(resultData);
       toast.success('🎉 Quiz submitted successfully!');
+      // Start 5-second countdown redirect to results page
+      setRedirectCountdown(5);
     } catch (error) {
       const errorData = error.response?.data;
       const msg = errorData?.error || errorData?.message || (typeof errorData === 'string' ? errorData : 'Failed to submit quiz');
@@ -305,6 +323,29 @@ const QuizAttempt = () => {
               </div>
             )}
           </div>
+
+          {/* Auto-redirect banner for fresh submissions */}
+          {redirectCountdown !== null && !isAlreadyCompleted && (
+            <div className="mb-4 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-2xl flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-indigo-600 text-sm">📊</span>
+                <span className="text-xs font-bold text-indigo-800">
+                  Redirecting to your Grade Transcript...
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-black animate-pulse">
+                  {redirectCountdown}
+                </div>
+                <button
+                  onClick={() => { setRedirectCountdown(null); }}
+                  className="text-[10px] font-bold text-indigo-500 hover:text-indigo-700 underline"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {isAlreadyCompleted && (

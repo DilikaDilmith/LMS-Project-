@@ -4,10 +4,30 @@ import { useAuth } from '../../context/AuthContext';
 import { courseAPI, quizAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
+const toArray = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.content)) return payload.content;
+  if (Array.isArray(payload?.results)) return payload.results;
+  return [];
+};
+
 const StudentQuizzes = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const studentId = user?.id;
+
+  const effectiveStudentId =
+    studentId ||
+    user?.id ||
+    (() => {
+      try {
+        const stored = localStorage.getItem('user');
+        return stored ? JSON.parse(stored)?.id : null;
+      } catch {
+        return null;
+      }
+    })();
 
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState('ALL');
@@ -17,10 +37,12 @@ const StudentQuizzes = () => {
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
 
   useEffect(() => {
-    if (studentId) {
+    if (effectiveStudentId) {
       fetchInitialData();
+    } else {
+      setLoadingInit(false);
     }
-  }, [studentId]);
+  }, [effectiveStudentId]);
 
   // Normalize course object: handle both EnrollmentResponse (courseId/courseName) and CourseResponse (id/name)
   const normalizeCourse = (c) => ({
@@ -32,16 +54,16 @@ const StudentQuizzes = () => {
     setLoadingInit(true);
     try {
       // 1. Fetch enrolled courses (returns EnrollmentResponse[])
-      const enrolledRes = await courseAPI.getEnrolled(studentId);
-      const rawCourses = enrolledRes.data || [];
+      const enrolledRes = await courseAPI.getEnrolled(effectiveStudentId);
+      const rawCourses = toArray(enrolledRes.data);
       // Normalize to {id, name} — handles EnrollmentResponse and CourseResponse
       const courses = rawCourses.map(normalizeCourse).filter((c) => c.id != null);
       setEnrolledCourses(courses);
 
       // 2. Fetch student quiz attempts
       try {
-        const attemptsRes = await quizAPI.getStudentResults(studentId);
-        setAttempts(attemptsRes.data || []);
+        const attemptsRes = await quizAPI.getStudentResults(effectiveStudentId);
+        setAttempts(toArray(attemptsRes.data));
       } catch (err) {
         console.warn('Failed to fetch quiz attempts:', err);
         setAttempts([]);
@@ -96,8 +118,16 @@ const StudentQuizzes = () => {
       ? quizzes
       : quizzes.filter((q) => String(q.courseId) === String(selectedCourse));
 
-  const getAttemptForQuiz = (quizId) =>
-    attempts.find((a) => String(a.quizId) === String(quizId)) || null;
+  const getAttemptForQuiz = (quizId) => {
+    const safeAttempts = Array.isArray(attempts) ? attempts : [];
+    return safeAttempts
+      .filter((attempt) => String(attempt.quizId) === String(quizId))
+      .sort(
+        (a, b) =>
+          new Date(b.endTime || b.attemptedAt || b.startTime || 0) -
+          new Date(a.endTime || a.attemptedAt || a.startTime || 0)
+      )[0] || null;
+  };
 
   if (loadingInit) {
     return (
