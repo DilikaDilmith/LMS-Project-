@@ -336,3 +336,91 @@ lms-frontend/
 ├── package.json
 └── vite.config.js
 ```
+
+
+---
+
+## 📊 **Database Schema (22+ Tables)**
+
+| Table Name | Description |
+|------------|-------------|
+| `users` | All users (Admin, Lecturer, Student, Parent) |
+| `institutes` | Educational institutes |
+| `courses` | Courses |
+| `modules` | Course modules/sections |
+| `lessons` | Lessons with video/PDF |
+| `enrollments` | Student-Course enrollment |
+| `assignments` | Assignments with due dates |
+| `assignment_submissions` | Student submissions |
+| `quizzes` | Quizzes |
+| `quiz_questions` | MCQ/True-False questions |
+| `quiz_options` | MCQ options |
+| `quiz_attempts` | Student quiz attempts |
+| `quiz_answers` | Student answers |
+| `attendance` | Attendance records |
+| `fees` | Fee records |
+| `payments` | Payment records |
+| `notifications` | User notifications |
+| `announcements` | Announcements |
+| `audit_logs` | Audit logs |
+| `parent_students` | Parent-Student links |
+| `student_lesson_progress` | Lesson progress |
+
+---
+
+## 🔄 **Complete User Flows**
+
+### 📚 **Course Creation & Approval Flow**
+
+```
+Lecturer → Create Course (DRAFT)
+         → Add Modules & Lessons
+         → Submit for Approval (PENDING_APPROVAL)
+         → Institute Admin Reviews
+         → Approve ✅ (APPROVED) / Reject ❌ (REJECTED)
+         → Students can Enroll
+```
+
+### 📝 **Assignment Flow**
+```
+Lecturer → Create Assignment
+         → Student Submits (File URL)
+         → System Checks Due Date (SUBMITTED / LATE)
+         → Lecturer Grades (Marks + Feedback)
+         → Auto-Notification to Student
+         → Student Views Grade
+```
+
+### ❓ **Quiz Flow**
+```
+Lecturer → Create Quiz (MCQ/True-False/Short Answer)
+         → Student Starts Quiz
+         → Student Answers Questions
+         → System Auto-grades MCQ/True-False
+         → Score Calculated (Pass/Fail)
+         → Auto-Notification with Result
+```
+
+### 👨‍👩‍👦 **Parent Flow**
+```
+Parent → Register → Login → Link Child → View Dashboard
+         → Child's Attendance ✅
+         → Child's Marks ✅
+         → Child's Course Progress ✅
+         → Child's Fees ✅
+```
+
+---
+
+## 🚀 **Installation Guide**
+
+### **Prerequisites**
+- Java 21 (JDK)
+- MySQL 8.0+
+- Node.js 18+
+- Maven (or use included mvnw wrapper)
+
+### **Step 1: Clone the Repository**
+```bash
+git clone https://github.com/your-username/lms-project.git
+cd lms-project
