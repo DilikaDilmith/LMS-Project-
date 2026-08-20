@@ -84,6 +84,7 @@ export const instituteAPI = {
 export const moduleAPI = {
   create: (data) => api.post('/modules', data),
   getByCourse: (courseId) => api.get(`/modules/course/${courseId}`),
+  update: (moduleId, data) => api.put(`/modules/${moduleId}`, data),
   delete: (moduleId) => api.delete(`/modules/${moduleId}`),
 };
 
@@ -94,6 +95,8 @@ export const lessonAPI = {
   create: (data) => api.post('/lessons', data),
   getByModule: (moduleId) => api.get(`/lessons/module/${moduleId}`),
   getPublished: (moduleId) => api.get(`/lessons/module/${moduleId}/published`),
+  update: (lessonId, data) => api.put(`/lessons/${lessonId}`, data),
+  delete: (lessonId) => api.delete(`/lessons/${lessonId}`),
 };
 
 // ============================================

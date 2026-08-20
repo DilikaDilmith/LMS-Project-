@@ -73,6 +73,31 @@ public class ModuleService {
                 .collect(Collectors.toList());
     }
 
+    // Module එක Update කරනවා
+    public ModuleResponse updateModule(Long moduleId, ModuleRequest request) {
+        Module module = moduleRepository.findById(moduleId)
+                .orElseThrow(() -> new RuntimeException("Module not found!"));
+
+        Course course = courseRepository.findById(module.getCourseId()).orElseThrow();
+        Long currentInstituteId = TenantContext.getInstituteId();
+        if (currentInstituteId != null && !currentInstituteId.equals(course.getInstituteId())) {
+            throw new RuntimeException("Access denied to this module!");
+        }
+
+        if (request.getTitle() != null && !request.getTitle().isBlank()) {
+            module.setTitle(request.getTitle());
+        }
+        if (request.getDescription() != null) {
+            module.setDescription(request.getDescription());
+        }
+        if (request.getOrderIndex() != null) {
+            module.setOrderIndex(request.getOrderIndex());
+        }
+
+        Module saved = moduleRepository.save(module);
+        return mapToResponse(saved);
+    }
+
     // Module එක මකන්න (Cascade - Lessonsත් මැකෙයි)
     @Transactional
     public void deleteModule(Long moduleId) {

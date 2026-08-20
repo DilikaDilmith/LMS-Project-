@@ -31,4 +31,17 @@ public class LessonController {
     public List<LessonResponse> getPublishedLessons(@PathVariable Long moduleId) {
         return lessonService.getPublishedLessonsByModule(moduleId);
     }
+
+    @PutMapping("/{lessonId}")
+    @PreAuthorize("hasRole('LECTURER')")
+    public LessonResponse updateLesson(@PathVariable Long lessonId, @RequestBody LessonRequest request) {
+        return lessonService.updateLesson(lessonId, request);
+    }
+
+    @DeleteMapping("/{lessonId}")
+    @PreAuthorize("hasRole('LECTURER')")
+    public String deleteLesson(@PathVariable Long lessonId) {
+        lessonService.deleteLesson(lessonId);
+        return "Lesson deleted successfully!";
+    }
 }

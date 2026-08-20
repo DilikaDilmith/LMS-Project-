@@ -27,6 +27,12 @@ public class ModuleController {
         return moduleService.getModulesByCourse(courseId);
     }
 
+    @PutMapping("/{moduleId}")
+    @PreAuthorize("hasRole('LECTURER')")
+    public ModuleResponse updateModule(@PathVariable Long moduleId, @RequestBody ModuleRequest request) {
+        return moduleService.updateModule(moduleId, request);
+    }
+
     @DeleteMapping("/{moduleId}")
     @PreAuthorize("hasRole('LECTURER')")
     public String deleteModule(@PathVariable Long moduleId) {

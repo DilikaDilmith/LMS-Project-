@@ -55,6 +55,44 @@ public class LessonService {
                 .collect(Collectors.toList());
     }
 
+    // Lesson එක Update කරනවා
+    public LessonResponse updateLesson(Long lessonId, LessonRequest request) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Lesson not found!"));
+
+        if (request.getTitle() != null && !request.getTitle().isBlank()) {
+            lesson.setTitle(request.getTitle());
+        }
+        if (request.getDescription() != null) {
+            lesson.setDescription(request.getDescription());
+        }
+        if (request.getVideoUrl() != null) {
+            lesson.setVideoUrl(request.getVideoUrl());
+        }
+        if (request.getPdfUrl() != null) {
+            lesson.setPdfUrl(request.getPdfUrl());
+        }
+        if (request.getOrderIndex() != null) {
+            lesson.setOrderIndex(request.getOrderIndex());
+        }
+        if (request.getDurationMinutes() != null) {
+            lesson.setDurationMinutes(request.getDurationMinutes());
+        }
+        if (request.getIsPublished() != null) {
+            lesson.setIsPublished(request.getIsPublished());
+        }
+
+        Lesson saved = lessonRepository.save(lesson);
+        return mapToResponse(saved);
+    }
+
+    // Lesson එක මකන්න
+    public void deleteLesson(Long lessonId) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Lesson not found!"));
+        lessonRepository.delete(lesson);
+    }
+
     // Published Lessons විතරක් ගන්නවා (Studentට)
     public List<LessonResponse> getPublishedLessonsByModule(Long moduleId) {
         return lessonRepository.findByModuleIdAndIsPublishedTrue(moduleId)

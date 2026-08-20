@@ -97,6 +97,25 @@ const CourseDetails = () => {
     isPublished: true,
   });
 
+  // Edit Module States
+  const [editingModuleId, setEditingModuleId] = useState(null); // module ID being edited
+  const [editModuleData, setEditModuleData] = useState({ title: '', description: '', orderIndex: 1 });
+
+  // Edit Lesson States
+  const [editingLessonId, setEditingLessonId] = useState(null); // lesson ID being edited
+  const [editLessonData, setEditLessonData] = useState({
+    title: '',
+    description: '',
+    videoUrl: '',
+    pdfUrl: '',
+    orderIndex: 1,
+    durationMinutes: 15,
+    isPublished: true,
+  });
+
+  const [deletingLessonId, setDeletingLessonId] = useState(null);
+  const [deletingModuleId, setDeletingModuleId] = useState(null);
+
   // =========================================================================
   // ASSIGNMENT SPECIFIC STATES & MODALS (UPGRADED BLUE & WHITE UI/UX)
   // =========================================================================
@@ -156,6 +175,41 @@ const CourseDetails = () => {
     setSelectedModuleId('');
     setShowLessonForm(false);
   };
+
+  // Open Edit Module inline form (pre-fill existing data)
+  const openEditModule = (module) => {
+    setEditingModuleId(module.id);
+    setEditModuleData({
+      title: module.title || '',
+      description: module.description || '',
+      orderIndex: module.orderIndex || 1,
+    });
+  };
+
+  const closeEditModule = () => {
+    setEditingModuleId(null);
+    setEditModuleData({ title: '', description: '', orderIndex: 1 });
+  };
+
+  // Open Edit Lesson inline form (pre-fill existing data)
+  const openEditLesson = (lesson) => {
+    setEditingLessonId(lesson.id);
+    setEditLessonData({
+      title: lesson.title || '',
+      description: lesson.description || '',
+      videoUrl: lesson.videoUrl || '',
+      pdfUrl: lesson.pdfUrl || '',
+      orderIndex: lesson.orderIndex || 1,
+      durationMinutes: lesson.durationMinutes || 15,
+      isPublished: lesson.isPublished !== undefined ? lesson.isPublished : true,
+    });
+  };
+
+  const closeEditLesson = () => {
+    setEditingLessonId(null);
+    setEditLessonData({ title: '', description: '', videoUrl: '', pdfUrl: '', orderIndex: 1, durationMinutes: 15, isPublished: true });
+  };
+
 
   useEffect(() => {
     fetchCourseDetails();
@@ -353,6 +407,76 @@ const CourseDetails = () => {
       toast.error(error.response?.data?.error || error.response?.data || 'Failed to add lesson');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // ── Module Update ─────────────────────────────────────────────────────────
+  const handleUpdateModule = async (e, moduleId) => {
+    e.preventDefault();
+    if (!editModuleData.title.trim()) {
+      toast.error('Module title is required');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await moduleAPI.update(moduleId, editModuleData);
+      toast.success('✅ Module updated successfully!');
+      closeEditModule();
+      await fetchCourseDetails();
+    } catch (error) {
+      toast.error(error.response?.data?.error || error.response?.data || 'Failed to update module');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ── Module Delete ─────────────────────────────────────────────────────────
+  const handleDeleteModule = async (moduleId) => {
+    if (!window.confirm('Are you sure you want to delete this module? All lessons inside will also be deleted.')) return;
+    setDeletingModuleId(moduleId);
+    try {
+      await moduleAPI.delete(moduleId);
+      toast.success('🗑️ Module deleted successfully!');
+      await fetchCourseDetails();
+    } catch (error) {
+      toast.error(error.response?.data?.error || error.response?.data || 'Failed to delete module');
+    } finally {
+      setDeletingModuleId(null);
+    }
+  };
+
+  // ── Lesson Update ─────────────────────────────────────────────────────────
+  const handleUpdateLesson = async (e, lessonId) => {
+    e.preventDefault();
+    if (!editLessonData.title.trim()) {
+      toast.error('Lesson title is required');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await lessonAPI.update(lessonId, editLessonData);
+      toast.success('✅ Lesson updated successfully!');
+      closeEditLesson();
+      await fetchCourseDetails();
+    } catch (error) {
+      toast.error(error.response?.data?.error || error.response?.data || 'Failed to update lesson');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ── Lesson Delete ─────────────────────────────────────────────────────────
+  const handleDeleteLesson = async (lessonId) => {
+    if (!window.confirm('Are you sure you want to delete this lesson?')) return;
+    setDeletingLessonId(lessonId);
+    try {
+      await lessonAPI.delete(lessonId);
+      toast.success('🗑️ Lesson deleted successfully!');
+      await fetchCourseDetails();
+    } catch (error) {
+      toast.error(error.response?.data?.error || error.response?.data || 'Failed to delete lesson');
+    } finally {
+      setDeletingLessonId(null);
     }
   };
 
@@ -899,19 +1023,94 @@ const CourseDetails = () => {
                         </div>
                       </div>
 
-                      {/* Add Lesson Button (Lecturer Only) */}
-                      {isLecturer && (
-                        <button
-                          onClick={() => {
-                            setSelectedModuleId(module.id);
-                            setShowLessonForm(selectedModuleId === module.id ? !showLessonForm : true);
-                          }}
-                          className="text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 px-3.5 py-1.5 rounded-xl transition"
-                        >
-                          {showLessonForm && selectedModuleId === module.id ? '✕ Cancel' : '➕ Add Lesson'}
-                        </button>
-                      )}
+                      {/* Module Action Buttons (Lecturer Only) */}
+                      <div className="flex items-center gap-2">
+                        {isLecturer && (
+                          <>
+                            {/* Edit Module */}
+                            <button
+                              onClick={() =>
+                                editingModuleId === module.id ? closeEditModule() : openEditModule(module)
+                              }
+                              className="text-xs font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl transition flex items-center gap-1"
+                              title="Edit Module"
+                            >
+                              ✏️ Edit
+                            </button>
+
+                            {/* Delete Module */}
+                            <button
+                              onClick={() => handleDeleteModule(module.id)}
+                              disabled={deletingModuleId === module.id}
+                              className="text-xs font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-xl transition flex items-center gap-1 disabled:opacity-50"
+                              title="Delete Module"
+                            >
+                              {deletingModuleId === module.id ? '⏳' : '🗑️'}
+                            </button>
+
+                            {/* Add Lesson */}
+                            <button
+                              onClick={() => {
+                                setSelectedModuleId(module.id);
+                                setShowLessonForm(selectedModuleId === module.id ? !showLessonForm : true);
+                              }}
+                              className="text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 px-3.5 py-1.5 rounded-xl transition"
+                            >
+                              {showLessonForm && selectedModuleId === module.id ? '✕ Cancel' : '➕ Add Lesson'}
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
+
+                    {/* ── Edit Module Inline Form (Lecturer Only) ── */}
+                    {isLecturer && editingModuleId === module.id && (
+                      <div className="bg-amber-50/80 border-b border-amber-200 p-6 animate-scaleUp">
+                        <h4 className="font-extrabold text-amber-900 mb-3 text-xs uppercase tracking-wider">
+                          ✏️ Edit Module — "{module.title}"
+                        </h4>
+                        <form onSubmit={(e) => handleUpdateModule(e, module.id)} className="space-y-3">
+                          <input
+                            type="text"
+                            placeholder="Module Title *"
+                            value={editModuleData.title}
+                            onChange={(e) => setEditModuleData({ ...editModuleData, title: e.target.value })}
+                            className="w-full px-3.5 py-2.5 border border-amber-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                            required
+                          />
+                          <textarea
+                            placeholder="Module Description (Optional)"
+                            value={editModuleData.description}
+                            onChange={(e) => setEditModuleData({ ...editModuleData, description: e.target.value })}
+                            className="w-full px-3.5 py-2.5 border border-amber-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                            rows={2}
+                          />
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="number"
+                              placeholder="Order"
+                              value={editModuleData.orderIndex}
+                              onChange={(e) => setEditModuleData({ ...editModuleData, orderIndex: parseInt(e.target.value) || 1 })}
+                              className="w-24 px-3 py-2 border border-amber-200 rounded-xl text-xs bg-white"
+                            />
+                            <button
+                              type="submit"
+                              disabled={submitting}
+                              className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-sm transition disabled:opacity-50"
+                            >
+                              {submitting ? 'Saving...' : '💾 Save Changes'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={closeEditModule}
+                              className="px-4 py-2 bg-white border border-amber-200 text-amber-700 rounded-xl text-xs font-bold hover:bg-amber-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
 
                     {/* Add Lesson Form (Lecturer Only) */}
                     {isLecturer && showLessonForm && selectedModuleId === module.id && (
@@ -1000,79 +1199,187 @@ const CourseDetails = () => {
                     <div className="divide-y divide-slate-100">
                       {module.lessons && module.lessons.length > 0 ? (
                         module.lessons.map((lesson) => (
-                          <div
-                            key={lesson.id}
-                            className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 transition hover:bg-slate-50/80"
-                          >
-                            <div className="flex items-center gap-3.5 flex-1 min-w-[200px]">
-                              <button
-                                onClick={() => setActiveLesson(lesson)}
-                                className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center text-sm transition shadow-xs flex-shrink-0"
-                                title="Play Lesson"
-                              >
-                                ▶️
-                              </button>
-                              <div>
-                                <h4
+                          <div key={lesson.id}>
+                            {/* Lesson Row */}
+                            <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 transition hover:bg-slate-50/80">
+                              <div className="flex items-center gap-3.5 flex-1 min-w-[200px]">
+                                <button
                                   onClick={() => setActiveLesson(lesson)}
-                                  className="font-bold text-slate-900 text-sm hover:text-blue-600 cursor-pointer transition"
+                                  className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center text-sm transition shadow-xs flex-shrink-0"
+                                  title="Play Lesson"
                                 >
-                                  {lesson.title}
-                                </h4>
-                                <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-500">
-                                  {lesson.durationMinutes && (
-                                    <span>⏱️ {lesson.durationMinutes} mins</span>
-                                  )}
-                                  {lesson.videoUrl && (
-                                    <span className="text-blue-600 font-semibold">📺 Video Available</span>
-                                  )}
-                                  {lesson.pdfUrl && (
-                                    <span className="text-purple-600 font-semibold">📄 PDF Attached</span>
-                                  )}
+                                  ▶️
+                                </button>
+                                <div>
+                                  <h4
+                                    onClick={() => setActiveLesson(lesson)}
+                                    className="font-bold text-slate-900 text-sm hover:text-blue-600 cursor-pointer transition"
+                                  >
+                                    {lesson.title}
+                                    {lesson.isPublished === false && (
+                                      <span className="ml-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-semibold">
+                                        Draft
+                                      </span>
+                                    )}
+                                  </h4>
+                                  <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-500">
+                                    {lesson.durationMinutes && (
+                                      <span>⏱️ {lesson.durationMinutes} mins</span>
+                                    )}
+                                    {lesson.videoUrl && (
+                                      <span className="text-blue-600 font-semibold">📺 Video Available</span>
+                                    )}
+                                    {lesson.pdfUrl && (
+                                      <span className="text-purple-600 font-semibold">📄 PDF Attached</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {/* Action Buttons */}
-                            <div className="flex items-center gap-2.5">
-                              {/* Open Video Player Button */}
-                              <button
-                                onClick={() => setActiveLesson(lesson)}
-                                className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition flex items-center gap-1"
-                              >
-                                <span>📺</span>
-                                View Lesson
-                              </button>
+                              {/* Action Buttons */}
+                              <div className="flex items-center gap-2">
+                                {/* Open Video Player Button */}
+                                <button
+                                  onClick={() => setActiveLesson(lesson)}
+                                  className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition flex items-center gap-1"
+                                >
+                                  <span>📺</span>
+                                  View Lesson
+                                </button>
 
-                              {/* Student Complete Toggle */}
-                              {!isLecturer && !isAdmin && (
-                                lesson.isCompleted ? (
-                                  <span className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1">
-                                    ✓ Finished
-                                  </span>
-                                ) : (
-                                  <button
-                                    onClick={() => handleCompleteLesson(lesson.id)}
-                                    disabled={completing === lesson.id || !isEnrolled}
-                                    className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition ${
-                                      completing === lesson.id
-                                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                        : isEnrolled
-                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                    }`}
-                                  >
-                                    {completing === lesson.id ? 'Saving...' : 'Mark Done'}
-                                  </button>
-                                )
+                                {/* Student Complete Toggle */}
+                                {!isLecturer && !isAdmin && (
+                                  lesson.isCompleted ? (
+                                    <span className="text-xs bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1">
+                                      ✓ Finished
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleCompleteLesson(lesson.id)}
+                                      disabled={completing === lesson.id || !isEnrolled}
+                                      className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition ${
+                                        completing === lesson.id
+                                          ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                          : isEnrolled
+                                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                      }`}
+                                    >
+                                      {completing === lesson.id ? 'Saving...' : 'Mark Done'}
+                                    </button>
+                                  )
+                                )}
+
+                                {/* Lecturer Edit & Delete Lesson Buttons */}
+                                {isLecturer && (
+                                  <>
+                                    <button
+                                      onClick={() =>
+                                        editingLessonId === lesson.id ? closeEditLesson() : openEditLesson(lesson)
+                                      }
+                                      className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold transition flex items-center gap-1"
+                                      title="Edit Lesson"
+                                    >
+                                      ✏️ Edit
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteLesson(lesson.id)}
+                                      disabled={deletingLessonId === lesson.id}
+                                      className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold transition disabled:opacity-50"
+                                      title="Delete Lesson"
+                                    >
+                                      {deletingLessonId === lesson.id ? '⏳' : '🗑️'}
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Description & Links Details */}
+                              {lesson.description && (
+                                <p className="w-full text-xs text-slate-600 pl-13 pt-1 border-t border-slate-50">
+                                  {lesson.description}
+                                </p>
                               )}
                             </div>
 
-                            {/* Description & Links Details */}
-                            {lesson.description && (
-                              <p className="w-full text-xs text-slate-600 pl-13 pt-1 border-t border-slate-50">
-                                {lesson.description}
-                              </p>
+                            {/* ── Edit Lesson Inline Form (Lecturer Only) ── */}
+                            {isLecturer && editingLessonId === lesson.id && (
+                              <div className="bg-amber-50/70 border-t border-b border-amber-200 p-6 animate-scaleUp">
+                                <h4 className="font-extrabold text-amber-900 mb-3 text-xs uppercase tracking-wider">
+                                  ✏️ Edit Lesson — "{lesson.title}"
+                                </h4>
+                                <form onSubmit={(e) => handleUpdateLesson(e, lesson.id)} className="space-y-3">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <input
+                                      type="text"
+                                      placeholder="Lesson Title *"
+                                      value={editLessonData.title}
+                                      onChange={(e) => setEditLessonData({ ...editLessonData, title: e.target.value })}
+                                      className="w-full px-3.5 py-2.5 border border-amber-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                                      required
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Video URL (YouTube or direct link)"
+                                      value={editLessonData.videoUrl}
+                                      onChange={(e) => setEditLessonData({ ...editLessonData, videoUrl: e.target.value })}
+                                      className="w-full px-3.5 py-2.5 border border-amber-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <input
+                                      type="text"
+                                      placeholder="PDF URL / Learning Material Link"
+                                      value={editLessonData.pdfUrl}
+                                      onChange={(e) => setEditLessonData({ ...editLessonData, pdfUrl: e.target.value })}
+                                      className="w-full px-3.5 py-2.5 border border-amber-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                                    />
+                                    <textarea
+                                      placeholder="Lesson Description & Notes"
+                                      value={editLessonData.description}
+                                      onChange={(e) => setEditLessonData({ ...editLessonData, description: e.target.value })}
+                                      className="w-full px-3.5 py-2.5 border border-amber-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                                      rows={2}
+                                    />
+                                  </div>
+                                  <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                                    <div className="flex items-center gap-3">
+                                      <input
+                                        type="number"
+                                        placeholder="Duration (mins)"
+                                        value={editLessonData.durationMinutes}
+                                        onChange={(e) => setEditLessonData({ ...editLessonData, durationMinutes: parseInt(e.target.value) || 15 })}
+                                        className="w-28 px-3 py-2 border border-amber-200 rounded-xl text-xs bg-white"
+                                      />
+                                      <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={editLessonData.isPublished}
+                                          onChange={(e) => setEditLessonData({ ...editLessonData, isPublished: e.target.checked })}
+                                          className="rounded border-slate-300 text-amber-500 focus:ring-amber-400"
+                                        />
+                                        Published
+                                      </label>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-sm transition disabled:opacity-50"
+                                      >
+                                        {submitting ? 'Saving...' : '💾 Save Changes'}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={closeEditLesson}
+                                        className="px-4 py-2 bg-white border border-amber-200 text-amber-700 rounded-xl text-xs font-bold hover:bg-amber-50"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                </form>
+                              </div>
                             )}
                           </div>
                         ))
