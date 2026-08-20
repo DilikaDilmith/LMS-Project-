@@ -420,7 +420,92 @@ Parent → Register → Login → Link Child → View Dashboard
 - Node.js 18+
 - Maven (or use included mvnw wrapper)
 
+
+## 🚀 **Installation Guide**
+
+### **Prerequisites**
+- Java 21 (JDK)
+- MySQL 8.0+
+- Node.js 18+
+- Maven (or use included mvnw wrapper)
+
 ### **Step 1: Clone the Repository**
 ```bash
-git clone https://github.com/your-username/lms-project.git
-cd lms-project
+git clone https://github.com/DilikaDilmith/LMS-Project-.git
+cd LMS-Project-
+```
+
+### **Step 2: Backend Setup**
+```bash
+# Navigate to backend
+cd lms-backend
+
+# Update application.properties with your MySQL credentials
+# spring.datasource.url=jdbc:mysql://localhost:3306/lms_db...
+# spring.datasource.password=your_password
+
+# Build and run
+./mvnw clean compile
+./mvnw spring-boot:run
+```
+> Backend runs on: `http://localhost:8080`
+
+### **Step 3: Frontend Setup**
+```bash
+# Open a new terminal
+cd lms-frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+> Frontend runs on: `http://localhost:5173`
+
+### **Step 4: Database Setup**
+1. Create MySQL database:
+```sql
+CREATE DATABASE lms_db;
+```
+2. Run the backend once – tables auto-generate via Hibernate.
+
+---
+## 🤝 **Contributing**
+
+1. Fork the repository
+2. Create a new branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m 'Add some feature'`
+4. Push to the branch: `git push origin feature/your-feature`
+5. Open a Pull Request
+
+---
+
+## 📄 **License**
+
+This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👨‍💻 **Developer Team**
+
+- **Backend:** Spring Boot, Java, MySQL
+- **Frontend:** React, Tailwind CSS, Vite
+- **Design:** Custom UI with Tailwind CSS
+
+---
+
+## 🙏 **Acknowledgments**
+
+- Spring Boot team for the amazing framework
+- React community for the powerful frontend library
+- All open-source libraries used in this project
+
+---
+
+**Built with ❤️ by Dilika Dilmith**
+
+---
+
+⭐ **If you find this project useful, please give it a star!**
+
